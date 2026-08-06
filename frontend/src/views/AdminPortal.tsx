@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import apiClient from '../apiClient'
-import { BarChart2, CheckSquare, CreditCard, Users, BookOpen, Volume2, Search, ArrowLeft, Loader2, Eye, ShieldAlert, LogOut, MessageCircle, UserCheck, UserX, UserPlus, Key, Settings, Award } from 'lucide-react'
+import { BarChart2, CheckSquare, CreditCard, Users, BookOpen, Volume2, Search, ArrowLeft, Loader2, ShieldAlert, LogOut, MessageCircle, UserCheck, UserX, UserPlus, Key, Settings, Award } from 'lucide-react'
 import { ContentManager } from './ContentManager'
 import MetricsCards from '../components/admin/MetricsCards'
 import WaitlistManager from '../components/admin/WaitlistManager'
+import GradingQueue from '../components/admin/GradingQueue'
+import PaymentQueue from '../components/admin/PaymentQueue'
 
 interface AdminPortalProps {
   session: any
@@ -732,206 +734,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ session, onSignOut }) 
 
         {/* 2. GRADING QUEUE */}
         {activeTab === 'grading' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.25rem', fontWeight: 800 }}>Project Submission Reviews</h3>
-            {gradingQueue.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No pending assignments to grade.</div>
-            ) : (
-              gradingQueue.map(sub => (
-                <div key={sub.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700 }}>{sub.profiles?.full_name || 'Anonymous'}</h4>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>ID: {sub.profiles?.student_id || 'N/A'}</span>
-                    </div>
-                    <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>
-                      M{sub.assignments?.modules?.order_index || 1}
-                    </span>
-                  </div>
-                  
-                  <div style={{ backgroundColor: 'var(--bg-primary)', padding: '10px', borderRadius: '8px', fontSize: '0.8rem' }}>
-                    <p style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Assignment: {sub.assignments?.title}</p>
-                    {sub.submission_text && (
-                      <p style={{ fontFamily: '"Courier New", Courier, monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all', marginBottom: '8px' }}>{sub.submission_text}</p>
-                    )}
-                    {sub.submission_file && (
-                      <div style={{ marginTop: '8px', padding: '6px 0', borderTop: '1px solid var(--border-color)' }}>
-                        <a 
-                          href={sub.submission_file} 
-                          download={sub.submission_file.startsWith('data:text/html') ? 'student_project.html' : 'student_project.zip'}
-                          style={{ fontSize: '0.75rem', color: 'var(--color-blue)', fontWeight: 600, textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                        >
-                          📥 Download Submitted File
-                        </a>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Feedback field */}
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '0.7rem' }}>FEEDBACK NOTES</label>
-                    <textarea 
-                      className="input-field" 
-                      placeholder="Write feedback remarks for the student..." 
-                      value={feedbackText}
-                      onChange={(e) => setFeedbackText(e.target.value)}
-                      style={{ minHeight: '60px', padding: '8px', fontSize: '0.8rem' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    <button 
-                      className="btn" 
-                      onClick={() => handleGradeSubmission(sub.id, 'approved')}
-                      disabled={actionLoading}
-                      style={{ backgroundColor: 'var(--color-success)', color: '#FFFFFF', padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer' }}
-                    >
-                      {actionLoading ? <Loader2 className="animate-spin" size={14} /> : 'Approve & Grade'}
-                    </button>
-                    <button 
-                      className="btn" 
-                      onClick={() => handleGradeSubmission(sub.id, 'rejected')}
-                      disabled={actionLoading}
-                      style={{ backgroundColor: 'var(--color-danger)', color: '#FFFFFF', padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer' }}
-                    >
-                      Reject (Resubmit)
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => handleFlagAI(sub.id, !sub.is_ai_flagged)}
-                      className="btn"
-                      style={{ 
-                        padding: '8px 12px', 
-                        fontSize: '0.8rem', 
-                        display: 'inline-flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        gap: '4px',
-                        backgroundColor: sub.is_ai_flagged ? 'var(--color-danger)' : 'var(--bg-primary)',
-                        color: sub.is_ai_flagged ? '#FFFFFF' : 'var(--text-secondary)',
-                        border: '1px solid var(--border-color)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <ShieldAlert size={14} />
-                      {sub.is_ai_flagged ? 'Suspected AI (Flagged)' : 'Flag suspected AI'}
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          <GradingQueue
+            gradingQueue={gradingQueue}
+            actionLoading={actionLoading}
+            feedbackText={feedbackText}
+            setFeedbackText={setFeedbackText}
+            handleGradeSubmission={handleGradeSubmission}
+            handleFlagAI={handleFlagAI}
+          />
         )}
 
-        {/* 3. PAYMENT VERIFICATION QUEUE */}
+        {/* 3. PAYMENT QUEUE */}
         {activeTab === 'payments' && role === 'admin' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.25rem', fontWeight: 800 }}>Pending Payment verifications</h3>
-            {paymentsQueue.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No pending bank payments in queue.</div>
-            ) : (
-              paymentsQueue.map(p => (
-                <div key={p.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700 }}>{p.profiles?.full_name || 'Anonymous'}</h4>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>ID: {p.profiles?.student_id || 'N/A'}</span>
-                    </div>
-                    <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>₦{p.amount}</span>
-                  </div>
-
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Target Exam: {p.quizzes?.title}</p>
-                  
-                  {/* Image render */}
-                  <div style={{ textAlign: 'center' }}>
-                    <button 
-                      onClick={() => setSelectedReceipt(p.signedUrl)}
-                      className="btn btn-secondary"
-                      style={{ padding: '8px', fontSize: '0.75rem', gap: '6px' }}
-                      disabled={!p.signedUrl}
-                    >
-                      <Eye size={14} /> View Receipt Screen
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button 
-                      className="btn" 
-                      onClick={() => handleApprovePayment(p.id)}
-                      disabled={actionLoading}
-                      style={{ backgroundColor: 'var(--color-success)', color: '#FFFFFF', padding: '8px', fontSize: '0.8rem' }}
-                    >
-                      Approve Transfer
-                    </button>
-                    <button 
-                      className="btn" 
-                      onClick={() => setShowRejectModal(p.id)}
-                      disabled={actionLoading}
-                      style={{ backgroundColor: 'var(--color-danger)', color: '#FFFFFF', padding: '8px', fontSize: '0.8rem' }}
-                    >
-                      Reject Transfer
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-
-            {/* Receipt Modal Overlay */}
-            {selectedReceipt && (
-              <div 
-                onClick={() => setSelectedReceipt(null)}
-                style={{ 
-                  position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', 
-                  backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000, 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-                }}
-              >
-                <img 
-                  src={selectedReceipt} 
-                  alt="Payment Receipt" 
-                  style={{ maxWidth: '100%', maxHeight: '80%', borderRadius: '8px', objectFit: 'contain' }}
-                />
-              </div>
-            )}
-
-            {/* Reject Payment Reason Modal */}
-            {showRejectModal && (
-              <div 
-                style={{ 
-                  position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', 
-                  backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-                }}
-              >
-                <div className="card" style={{ width: '100%', maxWidth: '320px', backgroundColor: 'var(--bg-secondary)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Enter Rejection Reason</h4>
-                  <textarea 
-                    className="input-field" 
-                    placeholder="e.g. Reference missing / incomplete transfer amount" 
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                    style={{ minHeight: '80px', fontSize: '0.8rem' }}
-                  />
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button 
-                      onClick={handleRejectPayment}
-                      className="btn"
-                      style={{ backgroundColor: 'var(--color-danger)', color: '#FFFFFF', padding: '8px' }}
-                    >
-                      Submit Reject
-                    </button>
-                    <button 
-                      onClick={() => { setShowRejectModal(null); setRejectReason(''); }}
-                      className="btn btn-secondary"
-                      style={{ padding: '8px' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <PaymentQueue
+            paymentsQueue={paymentsQueue}
+            actionLoading={actionLoading}
+            handleApprovePayment={handleApprovePayment}
+            handleRejectPayment={handleRejectPayment}
+            showRejectModal={showRejectModal}
+            setShowRejectModal={setShowRejectModal}
+            rejectReason={rejectReason}
+            setRejectReason={setRejectReason}
+            selectedReceipt={selectedReceipt}
+            setSelectedReceipt={setSelectedReceipt}
+          />
         )}
 
         {/* 4. STUDENT MANAGEMENT */}
