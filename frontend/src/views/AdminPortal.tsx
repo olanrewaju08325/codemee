@@ -226,7 +226,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ session, onSignOut }) 
   }, [activeTab])
 
   // Modal / Form states
-  const [feedbackText, setFeedbackText] = useState('')
+  const [feedbackTextMap, setFeedbackTextMap] = useState<Record<string, string>>({})
   const [rejectReason, setRejectReason] = useState('')
   const [announcementText, setAnnouncementText] = useState('')
   const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null)
@@ -358,10 +358,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ session, onSignOut }) 
     try {
       await apiClient.admin.gradeAssignment(id, {
         status,
-        feedback: feedbackText
+        feedback: feedbackTextMap[id] || ''
       })
       setMessage({ type: 'success', text: `Submission marked as ${status.toUpperCase()}!` })
-      setFeedbackText('')
+      setFeedbackTextMap(prev => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
       fetchQueues()
       fetchAnalytics()
     } catch (e: any) {
@@ -737,8 +741,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ session, onSignOut }) 
           <GradingQueue
             gradingQueue={gradingQueue}
             actionLoading={actionLoading}
-            feedbackText={feedbackText}
-            setFeedbackText={setFeedbackText}
+            feedbackTextMap={feedbackTextMap}
+            handleFeedbackChange={(id, text) => setFeedbackTextMap(prev => ({ ...prev, [id]: text }))}
             handleGradeSubmission={handleGradeSubmission}
             handleFlagAI={handleFlagAI}
           />

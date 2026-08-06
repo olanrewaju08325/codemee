@@ -4,8 +4,8 @@ import { Loader2 } from 'lucide-react'
 interface GradingQueueProps {
   gradingQueue: any[];
   actionLoading: boolean;
-  feedbackText: string;
-  setFeedbackText: (text: string) => void;
+  feedbackTextMap: Record<string, string>;
+  handleFeedbackChange: (id: string, text: string) => void;
   handleGradeSubmission: (id: string, status: 'approved' | 'rejected') => void;
   handleFlagAI: (id: string, isFlagged: boolean) => void;
 }
@@ -13,8 +13,8 @@ interface GradingQueueProps {
 const GradingQueue: React.FC<GradingQueueProps> = ({
   gradingQueue,
   actionLoading,
-  feedbackText,
-  setFeedbackText,
+  feedbackTextMap,
+  handleFeedbackChange,
   handleGradeSubmission,
   handleFlagAI
 }) => {
@@ -59,8 +59,8 @@ const GradingQueue: React.FC<GradingQueueProps> = ({
               <textarea 
                 className="input-field" 
                 placeholder="Write feedback remarks for the student..." 
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
+                value={feedbackTextMap[sub.id] || ''}
+                onChange={(e) => handleFeedbackChange(sub.id, e.target.value)}
                 style={{ minHeight: '60px', padding: '8px', fontSize: '0.8rem' }}
               />
             </div>
