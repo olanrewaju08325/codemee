@@ -8,10 +8,12 @@ from app.models.notification import Notification
 from app.models.quiz import QuizAttempt, Quiz
 from app.schemas.profile import ProfileResponse, NotificationResponse, UnreadCountResponse, CertificateStatusResponse
 
+import uuid
+
 async def get_profile_by_id(db: AsyncSession, user_id: str) -> Optional[Profile]:
     """Fetch a profile by user ID."""
     result = await db.execute(
-        select(Profile).where(Profile.id == user_id)
+        select(Profile).where(Profile.id == uuid.UUID(str(user_id)))
     )
     return result.scalar_one_or_none()
 

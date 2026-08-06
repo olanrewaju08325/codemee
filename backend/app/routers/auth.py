@@ -152,9 +152,10 @@ async def update_profile(
         update_data["avatar_url"] = profile_update.avatar_url
     
     if update_data:
+        import uuid
         await db.execute(
             update(Profile)
-            .where(Profile.id == user_data["user_id"])
+            .where(Profile.id == uuid.UUID(str(user_data["user_id"])))
             .values(**update_data)
         )
         
