@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react'
+import type { Module } from '../../../types/models'
 
 interface ModuleBuilderProps {
-  modules: any[]
+  modules: Module[]
   selectedCourseId: string
   fetchData: () => void
   setMessage: (msg: { type: 'success' | 'error', text: string }) => void
@@ -16,7 +17,7 @@ export const ModuleBuilder: React.FC<ModuleBuilderProps> = ({
   setMessage
 }) => {
   const [showForm, setShowForm] = useState(false)
-  const [editTarget, setEditTarget] = useState<any>(null)
+  const [editTarget, setEditTarget] = useState<Module | null>(null)
   const [moduleTitle, setModuleTitle] = useState('')
   const [moduleOrder, setModuleOrder] = useState('1')
   const [actionLoading, setActionLoading] = useState(false)

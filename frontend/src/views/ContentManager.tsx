@@ -6,12 +6,13 @@ import { ModuleBuilder } from '../components/admin/content/ModuleBuilder'
 import { LessonBuilder } from '../components/admin/content/LessonBuilder'
 import { AssignmentBuilder } from '../components/admin/content/AssignmentBuilder'
 import { QuizBuilder } from '../components/admin/content/QuizBuilder'
+import type { Course, Module } from '../types/models'
 
 export const ContentManager: React.FC = () => {
   const [loading, setLoading] = useState(true)
-  const [courses, setCourses] = useState<any[]>([])
+  const [courses, setCourses] = useState<Course[]>([])
   const [selectedCourseId, setSelectedCourseId] = useState<string>('wd101')
-  const [modules, setModules] = useState<any[]>([])
+  const [modules, setModules] = useState<Module[]>([])
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   // Sub-views: 'course-settings', 'modules', 'lessons', 'projects', 'quizzes', 'new-course'

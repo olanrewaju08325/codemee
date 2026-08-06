@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react'
+import type { Module, Quiz } from '../../../types/models'
 
 const toDateTimeLocalValue = (value?: string | null): string => {
   if (!value) return ''
@@ -17,7 +18,7 @@ const toIsoOrNull = (value: string): string | null => {
 }
 
 interface QuizBuilderProps {
-  modules: any[]
+  modules: Module[]
   selectedModuleId: string
   setSelectedModuleId: (id: string) => void
   fetchData: () => void
@@ -32,7 +33,7 @@ export const QuizBuilder: React.FC<QuizBuilderProps> = ({
   setMessage
 }) => {
   const [showForm, setShowForm] = useState(false)
-  const [editTarget, setEditTarget] = useState<any>(null)
+  const [editTarget, setEditTarget] = useState<Quiz | null>(null)
   const [quizTitle, setQuizTitle] = useState('')
   const [quizScheduledAt, setQuizScheduledAt] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
@@ -110,7 +111,7 @@ export const QuizBuilder: React.FC<QuizBuilderProps> = ({
         </form>
       )}
 
-      {modules.find(m => m.id === selectedModuleId)?.quizzes?.map((qz: any) => (
+      {modules.find(m => m.id === selectedModuleId)?.quizzes?.map((qz: Quiz) => (
         <div key={qz.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h4 style={{ fontSize: '0.9rem' }}>{qz.title}</h4>
           <div style={{ display: 'flex', gap: '6px' }}>

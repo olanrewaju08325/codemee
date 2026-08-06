@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react'
+import type { Module, Lesson } from '../../../types/models'
 
 interface LessonBuilderProps {
-  modules: any[]
+  modules: Module[]
   selectedModuleId: string
   setSelectedModuleId: (id: string) => void
   fetchData: () => void
@@ -18,7 +19,7 @@ export const LessonBuilder: React.FC<LessonBuilderProps> = ({
   setMessage
 }) => {
   const [showForm, setShowForm] = useState(false)
-  const [editTarget, setEditTarget] = useState<any>(null)
+  const [editTarget, setEditTarget] = useState<Lesson | null>(null)
   const [lessonTitle, setLessonTitle] = useState('')
   const [lessonContent, setLessonContent] = useState('')
   const [lessonVideo, setLessonVideo] = useState('')
@@ -103,7 +104,7 @@ export const LessonBuilder: React.FC<LessonBuilderProps> = ({
         </form>
       )}
 
-      {modules.find(m => m.id === selectedModuleId)?.lessons?.sort((a: any, b: any) => a.order_index - b.order_index).map((ls: any) => (
+      {modules.find(m => m.id === selectedModuleId)?.lessons?.sort((a: Lesson, b: Lesson) => a.order_index - b.order_index).map((ls: Lesson) => (
         <div key={ls.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h4 style={{ fontSize: '0.9rem' }}>L{ls.order_index}: {ls.title}</h4>
           <div style={{ display: 'flex', gap: '6px' }}>

@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react'
+import type { Module, Assignment } from '../../../types/models'
 
 interface AssignmentBuilderProps {
-  modules: any[]
+  modules: Module[]
   selectedModuleId: string
   setSelectedModuleId: (id: string) => void
   fetchData: () => void
@@ -18,7 +19,7 @@ export const AssignmentBuilder: React.FC<AssignmentBuilderProps> = ({
   setMessage
 }) => {
   const [showForm, setShowForm] = useState(false)
-  const [editTarget, setEditTarget] = useState<any>(null)
+  const [editTarget, setEditTarget] = useState<Assignment | null>(null)
   const [projectTitle, setProjectTitle] = useState('')
   const [projectDesc, setProjectDesc] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
@@ -91,7 +92,7 @@ export const AssignmentBuilder: React.FC<AssignmentBuilderProps> = ({
         </form>
       )}
 
-      {modules.find(m => m.id === selectedModuleId)?.assignments?.map((asg: any) => (
+      {modules.find(m => m.id === selectedModuleId)?.assignments?.map((asg: Assignment) => (
         <div key={asg.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h4 style={{ fontSize: '0.9rem' }}>{asg.title}</h4>
           <div style={{ display: 'flex', gap: '6px' }}>

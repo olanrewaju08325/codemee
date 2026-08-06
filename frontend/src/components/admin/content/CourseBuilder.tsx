@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../../supabaseClient'
 import { Loader2 } from 'lucide-react'
+import type { Course } from '../../../types/models'
 
 const LANGUAGES = ['English', 'Yoruba', 'Igbo', 'Hausa', 'Pidgin English']
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced']
 const CURRENCIES = ['NGN', 'USD', 'GBP']
 
 interface CourseBuilderProps {
-  courses: any[]
+  courses: Course[]
   selectedCourseId: string
   activeView: string
   setActiveView: (view: string) => void
