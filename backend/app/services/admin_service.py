@@ -27,12 +27,12 @@ async def get_admin_analytics(db: AsyncSession) -> AnalyticsResponse:
     )
     total = total_students.scalar() or 0
 
-    active_wd101 = await db.execute(
+    # Count all active enrollments across all courses
+    active_enrollments_query = await db.execute(
         select(func.count(StudentEnrollment.id))
-        .where(StudentEnrollment.course_id == "wd101")
-        .where(StudentEnrollment.status == "enrolled")
+        .where(StudentEnrollment.status == "active")
     )
-    active = active_wd101.scalar() or 0
+    active = active_enrollments_query.scalar() or 0
 
     pending_payments = await db.execute(
         select(func.count(ExamPaymentVerification.id))
@@ -48,7 +48,7 @@ async def get_admin_analytics(db: AsyncSession) -> AnalyticsResponse:
 
     return AnalyticsResponse(
         total_students=total,
-        active_wd101=active,
+        active_enrollments=active,
         pending_payments=pending_pay,
         pending_grading=pending_grade
     )

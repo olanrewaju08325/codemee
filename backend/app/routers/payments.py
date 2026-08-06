@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any, List
 from app.core.database import get_db
@@ -7,11 +7,17 @@ from app.core.permissions import require_student, require_teacher_or_admin
 from app.schemas.payment import PaymentCreate, PaymentResponse
 from app.services.payment_service import create_payment, get_payments_for_student, count_approved_payments
 from app.services.notification_service import trigger_payment_submitted
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
 @router.post("/payments", response_model=PaymentResponse)
+@limiter.limit("5/minute")
 async def submit_payment(
+    request: Request,
     payment_data: PaymentCreate,
     user_data: Dict[str, Any] = Depends(require_student),
     db: AsyncSession = Depends(get_db)

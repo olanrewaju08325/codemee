@@ -4,7 +4,7 @@ from datetime import datetime
 
 class AnalyticsResponse(BaseModel):
     total_students: int
-    active_wd101: int
+    active_enrollments: int
     pending_payments: int
     pending_grading: int
 

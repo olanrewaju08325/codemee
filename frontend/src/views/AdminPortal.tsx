@@ -17,7 +17,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ session, onSignOut }) 
   // Analytics states
   const [metrics, setMetrics] = useState({
     totalStudents: 0,
-    activeWD101: 0,
+    activeEnrollments: 0,
     pendingPayments: 0,
     pendingGrading: 0
   })
@@ -250,7 +250,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ session, onSignOut }) 
       const analytics = await apiClient.admin.getAnalytics()
       setMetrics({
         totalStudents: analytics.total_students || 0,
-        activeWD101: analytics.active_wd101 || 0,
+        activeEnrollments: analytics.active_enrollments || 0,
         pendingPayments: analytics.pending_payments || 0,
         pendingGrading: analytics.pending_grading || 0
       })
@@ -663,7 +663,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ session, onSignOut }) 
       </div>
 
       {/* Main Panel Workspaces */}
-      <div className="app-content" style={{ padding: '16px' }}>
+      <div className="app-content" style={{ padding: '16px', overflowX: 'auto' }}>
 
         {message && (
           <div 
@@ -691,8 +691,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ session, onSignOut }) 
                 <h1 style={{ fontSize: '2rem', fontWeight: 800, marginTop: '4px' }}>{metrics.totalStudents}</h1>
               </div>
               <div className="card">
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>WD101 ENROLLMENTS</span>
-                <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-blue)', marginTop: '4px' }}>{metrics.activeWD101}</h1>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ACTIVE ENROLLMENTS</span>
+                <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-blue)', marginTop: '4px' }}>{metrics.activeEnrollments}</h1>
               </div>
               <div className="card">
                 <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>UNGRADED PROJECTS</span>

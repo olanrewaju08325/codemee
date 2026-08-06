@@ -115,12 +115,15 @@ async def get_certificate_status(db: AsyncSession, user_id: str, course_id: str 
     
     passed_quiz_ids = result.scalars().all()
     
-    # Get total quizzes for the course (this would need module/course joins)
-    # For now, we know WD101 has 6 quizzes from the seed data
-    total_quizzes = 6
+    # Get total quizzes for the course dynamically
+    total_result = await db.execute(
+        select(func.count(Quiz.id))
+        .where(Quiz.course_id == course_id)
+    )
+    total_quizzes = total_result.scalar() or 0
     
     return CertificateStatusResponse(
-        can_generate=len(passed_quiz_ids) >= total_quizzes,
+        can_generate=(total_quizzes > 0 and len(passed_quiz_ids) >= total_quizzes),
         passed_quizzes=len(passed_quiz_ids),
         total_quizzes=total_quizzes
     )
