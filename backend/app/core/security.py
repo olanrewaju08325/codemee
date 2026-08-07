@@ -75,6 +75,12 @@ async def verify_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid token (alg={unverified_header.get('alg', 'unknown')}): {str(e)}"
         )
+    except Exception as e:
+        import traceback
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Unhandled token verification error: {type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+        )
 
 async def get_current_user(
     user_data: Dict[str, Any] = Depends(verify_token)
