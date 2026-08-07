@@ -64,7 +64,6 @@ async def verify_token(
             "user_id": user_id,
             "role": profile.role,
             "email": payload.get("email"),
-            "email_confirmed_at": email_confirmed_at,
             "exp": payload.get("exp")
         }
         
