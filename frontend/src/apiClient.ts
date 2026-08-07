@@ -44,7 +44,11 @@ async function authenticatedFetch(url: string, options: RequestInit = {}): Promi
 export const authAPI = {
   getProfile: async () => {
     const response = await authenticatedFetch('/api/profile/me');
-    if (!response.ok) throw new Error('Failed to fetch profile');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend Profile Error:', response.status, errorText);
+      throw new Error(`Failed to fetch profile: ${errorText}`);
+    }
     return response.json();
   },
   
