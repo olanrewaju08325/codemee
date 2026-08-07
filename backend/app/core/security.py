@@ -22,12 +22,27 @@ async def verify_token(
         unverified_header = jwt.get_unverified_header(token)
         token_alg = unverified_header.get("alg", "HS256")
         
-        payload = jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256", "RS256", "HS384", "HS512", token_alg],
-            audience="authenticated"
-        )
+        if token_alg == "RS256":
+            import urllib.request
+            import json
+            # Supabase new default is RS256. Fetch the public keys to verify.
+            jwks_url = f"{settings.SUPABASE_PROJECT_URL}/rest/v1/jwks"
+            with urllib.request.urlopen(jwks_url) as response:
+                jwks = json.loads(response.read().decode())
+                
+            payload = jwt.decode(
+                token,
+                jwks,
+                algorithms=["RS256"],
+                audience="authenticated"
+            )
+        else:
+            payload = jwt.decode(
+                token,
+                settings.SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated"
+            )
         
         # Extract user ID
         user_id = payload.get("sub")
