@@ -52,14 +52,6 @@ async def verify_token(
                 detail="Invalid token: missing user ID"
             )
             
-        # Check email verification status
-        email_confirmed_at = payload.get("email_confirmed_at")
-        if not email_confirmed_at:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Email not verified. Please confirm your email address before accessing this resource."
-            )
-        
         # Determine actual role from database
         profile = await get_profile_by_id(db, user_id)
         if not profile:
