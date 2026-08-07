@@ -40,7 +40,7 @@ async def verify_token(
             payload = jwt.decode(
                 token,
                 settings.SUPABASE_JWT_SECRET,
-                algorithms=["HS256"],
+                algorithms=[token_alg, "HS256"],
                 audience="authenticated"
             )
         
