@@ -81,7 +81,7 @@ async def verify_token(
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {str(e)}"
+            detail=f"Invalid token (alg={unverified_header.get('alg', 'unknown')}): {str(e)}"
         )
 
 async def get_current_user(
