@@ -22,10 +22,10 @@ async def verify_token(
         unverified_header = jwt.get_unverified_header(token)
         token_alg = unverified_header.get("alg", "HS256")
         
-        if token_alg == "RS256":
+        if token_alg != "HS256":
             import urllib.request
             import json
-            # Supabase new default is RS256. Fetch the public keys to verify.
+            # Supabase new default is RS256, but could be other asymmetric algs. Fetch the public keys to verify.
             jwks_url = f"{settings.SUPABASE_PROJECT_URL}/rest/v1/jwks"
             with urllib.request.urlopen(jwks_url) as response:
                 jwks = json.loads(response.read().decode())
@@ -33,14 +33,14 @@ async def verify_token(
             payload = jwt.decode(
                 token,
                 jwks,
-                algorithms=["RS256"],
+                algorithms=[token_alg],
                 audience="authenticated"
             )
         else:
             payload = jwt.decode(
                 token,
                 settings.SUPABASE_JWT_SECRET,
-                algorithms=[token_alg, "HS256"],
+                algorithms=["HS256"],
                 audience="authenticated"
             )
         
