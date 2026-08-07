@@ -1,9 +1,9 @@
 // API Client for FastAPI Backend
 // This replaces direct Supabase data calls with backend API calls
+import { supabase } from './supabaseClient';
 
 // Get the current Supabase session token
 async function getAuthToken(): Promise<string | null> {
-  const { supabase } = await import('./supabaseClient');
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token || null;
 }
@@ -577,6 +577,33 @@ export const adminAPI = {
     if (!response.ok) throw new Error('Failed to create lesson');
     return response.json();
   },
+
+  getSystemSettings: async () => {
+    const response = await authenticatedFetch('/api/admin/settings');
+    if (!response.ok) throw new Error('Failed to fetch settings');
+    return response.json();
+  },
+
+  updateSystemSettings: async (data: Record<string, unknown>) => {
+    const response = await authenticatedFetch('/api/admin/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update settings');
+    return response.json();
+  },
+
+  getAuditLogs: async () => {
+    const response = await authenticatedFetch('/api/admin/audit-logs');
+    if (!response.ok) throw new Error('Failed to fetch audit logs');
+    return response.json();
+  },
+
+  getFinancialReports: async () => {
+    const response = await authenticatedFetch('/api/admin/financial-reports');
+    if (!response.ok) throw new Error('Failed to fetch financial reports');
+    return response.json();
+  },
 };
 
 // Payments API
@@ -627,7 +654,80 @@ export const announcementsAPI = {
   },
 };
 
-// Push Notifications API (Web Push, Part 3)
+// ==========================================
+// AI Module
+// ==========================================
+export const aiAPI = {
+  ask: async (message: string, contextCode?: string) => {
+    const response = await authenticatedFetch('/api/ai/ask', {
+      method: 'POST',
+      body: JSON.stringify({ message, context_code: contextCode })
+    });
+    if (!response.ok) throw new Error('Failed to ask AI tutor');
+    return response.json();
+  },
+  
+  getHistory: async () => {
+    const response = await authenticatedFetch('/api/ai/chat/history', {
+      method: 'GET'
+    });
+    if (!response.ok) throw new Error('Failed to fetch chat history');
+    return response.json();
+  },
+  
+  generate: async (prompt: string, contextType: string, contextData?: string) => {
+    const response = await authenticatedFetch('/api/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt, context_type: contextType, context_data: contextData })
+    });
+    if (!response.ok) throw new Error('Failed to generate AI content');
+    return response.json();
+  },
+
+  getPendingReviews: async () => {
+    const response = await authenticatedFetch('/api/ai/reviews/pending');
+    if (!response.ok) throw new Error('Failed to fetch pending reviews');
+    return response.json();
+  },
+
+  reviewSubmission: async (submissionId: string) => {
+    const response = await authenticatedFetch(`/api/ai/review-submission/${submissionId}`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.detail || 'Failed to generate AI review');
+    }
+    return response.json();
+  },
+
+  confirmReview: async (submissionId: string, data: { review_id: string; feedback: string; status: 'approved' | 'rejected'; is_ai_flagged?: boolean }) => {
+    const response = await authenticatedFetch(`/api/ai/confirm-review/${submissionId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to release grade');
+    return response.json();
+  },
+
+  getSettings: async () => {
+    const response = await authenticatedFetch('/api/ai/settings');
+    if (!response.ok) throw new Error('Failed to fetch AI settings');
+    return response.json();
+  },
+
+  updateSettings: async (data: { daily_limit: number; review_daily_limit: number }) => {
+    const response = await authenticatedFetch('/api/ai/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update AI settings');
+    return response.json();
+  }
+};
+
+// ==========================================
+// Notifications & CommsAPI (Web Push, Part 3)
 export const pushAPI = {
   subscribe: async (subscription: PushSubscription) => {
     const json = subscription.toJSON()
@@ -677,63 +777,50 @@ export const pushAPI = {
   },
 };
 
-// AI Tutor API (Part 4 scaffolding)
-export const aiAPI = {
-  ask: async (message: string, contextCode?: string) => {
-    const response = await authenticatedFetch('/api/ai/ask', {
-      method: 'POST',
-      body: JSON.stringify({ message, context_code: contextCode || null }),
-    });
-    if (!response.ok) throw new Error('Failed to ask AI tutor');
+// Support / Tickets API
+export const supportAPI = {
+  getTickets: async () => {
+    const response = await authenticatedFetch('/api/support/tickets');
+    if (!response.ok) throw new Error('Failed to fetch support tickets');
     return response.json();
   },
-
-  getChatHistory: async () => {
-    const response = await authenticatedFetch('/api/ai/chat/history');
-    if (!response.ok) throw new Error('Failed to fetch chat history');
-    return response.json();
-  },
-
-  getPendingReviews: async () => {
-    const response = await authenticatedFetch('/api/ai/reviews/pending');
-    if (!response.ok) throw new Error('Failed to fetch pending reviews');
-    return response.json();
-  },
-
-  reviewSubmission: async (submissionId: string) => {
-    const response = await authenticatedFetch(`/api/ai/review-submission/${submissionId}`, {
-      method: 'POST',
-    });
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new Error(body?.detail || 'Failed to generate AI review');
-    }
-    return response.json();
-  },
-
-  confirmReview: async (submissionId: string, data: { review_id: string; feedback: string; status: 'approved' | 'rejected'; is_ai_flagged?: boolean }) => {
-    const response = await authenticatedFetch(`/api/ai/confirm-review/${submissionId}`, {
+  createTicket: async (data: { title: string; description: string; category: string; priority: string }) => {
+    const response = await authenticatedFetch('/api/support/tickets', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('Failed to release grade');
+    if (!response.ok) throw new Error('Failed to create ticket');
     return response.json();
   },
-
-  getSettings: async () => {
-    const response = await authenticatedFetch('/api/ai/settings');
-    if (!response.ok) throw new Error('Failed to fetch AI settings');
-    return response.json();
-  },
-
-  updateSettings: async (data: { daily_limit: number; review_daily_limit: number }) => {
-    const response = await authenticatedFetch('/api/ai/settings', {
-      method: 'PATCH',
+  replyTicket: async (ticketId: string, data: { message: string }) => {
+    const response = await authenticatedFetch(`/api/support/tickets/${ticketId}/reply`, {
+      method: 'POST',
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('Failed to update AI settings');
+    if (!response.ok) throw new Error('Failed to reply to ticket');
     return response.json();
   },
+};
+
+// ==========================================
+// Analytics API
+// ==========================================
+export const analyticsAPI = {
+  getStudentAnalytics: async () => {
+    const response = await authenticatedFetch('/api/analytics/student/me');
+    if (!response.ok) throw new Error('Failed to fetch student analytics');
+    return response.json();
+  },
+  getTeacherAnalytics: async () => {
+    const response = await authenticatedFetch('/api/analytics/teacher/me');
+    if (!response.ok) throw new Error('Failed to fetch teacher analytics');
+    return response.json();
+  },
+  getAdminAnalytics: async () => {
+    const response = await authenticatedFetch('/api/analytics/admin/overview');
+    if (!response.ok) throw new Error('Failed to fetch admin analytics');
+    return response.json();
+  }
 };
 
 export default {
@@ -747,5 +834,7 @@ export default {
   payments: paymentsAPI,
   announcements: announcementsAPI,
   push: pushAPI,
+  support: supportAPI,
   ai: aiAPI,
+  analytics: analyticsAPI,
 };

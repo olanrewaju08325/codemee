@@ -31,12 +31,13 @@ export default defineConfig(({ mode }) => {
         filename: 'sw.js',
         includeAssets: ['favicon.svg', 'codeme.jpg'],
         manifest: {
-          name: 'CodeMe Learning Platform',
-          short_name: 'CodeMe',
-          description: 'The official mobile-first learning app for CodeMe Academy Nigeria.',
-          theme_color: '#0C4A8C',
+          name: 'CodeMe Academy',
+          short_name: 'CodeMe Academy',
+          description: 'The premium mobile-first learning application for CodeMe Academy.',
+          theme_color: '#07060D',
           background_color: '#07060D',
           display: 'standalone',
+          display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
           start_url: '/',
           orientation: 'portrait',
           icons: [

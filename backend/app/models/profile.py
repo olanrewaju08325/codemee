@@ -19,6 +19,7 @@ class Profile(Base):
     email = Column(String, nullable=True)
     role = Column(String, default=UserRole.STUDENT.value, nullable=False)
     avatar_url = Column(String, nullable=True)
+    has_completed_onboarding = Column(Boolean, default=False, nullable=False)
     streak_count = Column(Integer, default=1, nullable=False)
     last_active_date = Column(DateTime, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

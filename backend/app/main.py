@@ -2,7 +2,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine
-from app.routers import auth, enrollment, courses, quizzes, certificates, forum, lessons, payments, announcements, admin, notifications, push, cron, ai
+from app.routers import auth, enrollment, courses, quizzes, certificates, forum, lessons, payments, announcements, admin, notifications, push, cron, ai, analytics, health, audit_logs, database, student_dashboard, teacher_dashboard, teacher_ai, admin_dashboard, admin_users, admin_courses, admin_payments, admin_system, admin_monitoring
+import logging
+
+# Configure production-ready logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -27,10 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "service": "codeme-backend"}
+app.include_router(health.router)
 
 # Router registration
 app.include_router(auth.router, prefix="/api", tags=["Authentication"])
@@ -47,6 +55,18 @@ app.include_router(notifications.router, prefix="/api", tags=["Notifications"])
 app.include_router(push.router, prefix="/api", tags=["Push"])
 app.include_router(cron.router, prefix="/api", tags=["Cron"])
 app.include_router(ai.router, prefix="/api", tags=["AI"])
+app.include_router(analytics.router, prefix="/api", tags=["Analytics"])
+app.include_router(audit_logs.router)
+app.include_router(database.router)
+app.include_router(student_dashboard.router)
+app.include_router(teacher_dashboard.router)
+app.include_router(teacher_ai.router)
+app.include_router(admin_dashboard.router)
+app.include_router(admin_users.router)
+app.include_router(admin_courses.router)
+app.include_router(admin_payments.router)
+app.include_router(admin_system.router)
+app.include_router(admin_monitoring.router)
 
 @app.on_event("startup")
 async def startup():

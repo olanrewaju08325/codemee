@@ -300,3 +300,8 @@ async def get_pending_reviews(db: AsyncSession) -> List[AIReviewResponse]:
         )
         for r, assignment, profile in rows
     ]
+
+async def generate_content(db: AsyncSession, prompt: str, context_type: str, context_data: Optional[str] = None) -> str:
+    """Generate content for teachers/admins without touching daily review/chat limits."""
+    provider = get_ai_provider(settings.AI_PROVIDER)
+    return await provider.generate_content(prompt, context_type, context_data)

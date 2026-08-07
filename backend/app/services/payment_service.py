@@ -64,13 +64,13 @@ async def create_payment(db: AsyncSession, payment_data: PaymentCreate, student_
     name_map, quiz_map = await _resolve_names(db, [payment])
     return await _build_payment_response(payment, name_map, quiz_map)
 
-async def get_payments_for_student(db: AsyncSession, student_id: str, quiz_id: str) -> List[PaymentResponse]:
-    result = await db.execute(
-        select(ExamPaymentVerification)
-        .where(ExamPaymentVerification.student_id == uuid.UUID(student_id))
-        .where(ExamPaymentVerification.quiz_id == uuid.UUID(quiz_id))
-        .order_by(desc(ExamPaymentVerification.created_at))
-    )
+async def get_payments_for_student(db: AsyncSession, student_id: str, quiz_id: Optional[str] = None) -> List[PaymentResponse]:
+    query = select(ExamPaymentVerification).where(ExamPaymentVerification.student_id == uuid.UUID(student_id))
+    if quiz_id:
+        query = query.where(ExamPaymentVerification.quiz_id == uuid.UUID(quiz_id))
+    
+    query = query.order_by(desc(ExamPaymentVerification.created_at))
+    result = await db.execute(query)
     payments = result.scalars().all()
 
     name_map, quiz_map = await _resolve_names(db, payments)

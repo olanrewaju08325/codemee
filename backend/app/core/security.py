@@ -3,12 +3,18 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from app.core.config import settings
 from typing import Optional, Dict, Any
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import get_db
+from app.services.profile_service import get_profile_by_id
 
 security = HTTPBearer()
 
-async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
+async def verify_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
     """
-    Verify Supabase JWT token and return decoded user info.
+    Verify Supabase JWT token and return decoded user info along with database-verified role.
     """
     try:
         token = credentials.credentials
@@ -19,18 +25,14 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
             audience="authenticated"
         )
         
-        # Extract user ID and role claims
+        # Extract user ID
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token: missing user ID"
             )
-        
-        # Get role from user metadata if available
-        user_metadata = payload.get("user_metadata", {})
-        role = user_metadata.get("role", "student")
-        
+            
         # Check email verification status
         email_confirmed_at = payload.get("email_confirmed_at")
         if not email_confirmed_at:
@@ -39,9 +41,17 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
                 detail="Email not verified. Please confirm your email address before accessing this resource."
             )
         
+        # Determine actual role from database
+        profile = await get_profile_by_id(db, user_id)
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User profile not found in database."
+            )
+            
         return {
             "user_id": user_id,
-            "role": role,
+            "role": profile.role,
             "email": payload.get("email"),
             "email_confirmed_at": email_confirmed_at,
             "exp": payload.get("exp")
@@ -55,9 +65,27 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
             detail=f"Invalid token: {str(e)}"
         )
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
+async def get_current_user(
+    user_data: Dict[str, Any] = Depends(verify_token)
+) -> Dict[str, Any]:
     """
     Get current authenticated user from verified token.
-    This is the main dependency used in protected routes.
     """
-    return await verify_token(credentials)
+    return user_data
+
+def require_role(allowed_roles: list[str]):
+    """
+    Dependency factory to check if the user has an allowed role.
+    """
+    async def role_checker(user_data: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
+        if user_data.get("role") not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to perform this action."
+            )
+        return user_data
+    return role_checker
+
+require_student = require_role(["student", "teacher", "admin"]) # Cascading access
+require_teacher = require_role(["teacher", "admin"]) # Admin can do teacher actions
+require_admin = require_role(["admin"])

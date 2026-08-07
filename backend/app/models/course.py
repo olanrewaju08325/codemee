@@ -11,7 +11,8 @@ class Course(Base):
     id = Column(String, primary_key=True)  # e.g., "wd101"
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    is_active = Column(Boolean, default=False, nullable=False)
+    status = Column(String, default="draft", nullable=False) # draft, under_review, approved, published, active, maintenance, archived
+    is_active = Column(Boolean, default=False, nullable=False) # legacy compat
     whatsapp_group_cap = Column(Integer, default=40, nullable=False)
     platform_access_cap = Column(Integer, default=40, nullable=False)
     total_batches = Column(Integer, default=2, nullable=False)
@@ -41,6 +42,8 @@ class Lesson(Base):
     module_id = Column(UUID(as_uuid=True), ForeignKey("modules.id", ondelete="CASCADE"), nullable=False)
     title = Column(String, nullable=False)
     content = Column(Text, nullable=False)
+    learning_objectives = Column(Text, nullable=True)
+    estimated_duration = Column(Integer, default=30, nullable=False) # in minutes
     video_url = Column(String, nullable=True)
     pdf_url = Column(String, nullable=True)
     order_index = Column(Integer, nullable=False)

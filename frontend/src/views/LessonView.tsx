@@ -265,7 +265,7 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
           if (moduleData?.course_id) {
             setCourseId(moduleData.course_id)
           }
-        } catch (e) {
+        } catch {
           console.log('Could not fetch module for course_id')
         }
       }

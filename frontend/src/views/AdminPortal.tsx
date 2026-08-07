@@ -1,1267 +1,211 @@
-import React, { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import apiClient from '../apiClient'
-import { BarChart2, CheckSquare, CreditCard, Users, BookOpen, Volume2, Search, ArrowLeft, Loader2, ShieldAlert, LogOut, MessageCircle, UserCheck, UserX, UserPlus, Key, Settings, Award } from 'lucide-react'
-import { ContentManager } from './ContentManager'
-import MetricsCards from '../components/admin/MetricsCards'
-import WaitlistManager from '../components/admin/WaitlistManager'
-import GradingQueue from '../components/admin/GradingQueue'
-import PaymentQueue from '../components/admin/PaymentQueue'
+import React, { useState } from 'react';
+import { Users, BookOpen, CreditCard, Settings, FileText, Activity, ShieldCheck, LogOut, ChevronLeft, Zap, XCircle, Shield, Database } from 'lucide-react';
+import { InfrastructureHealth } from './InfrastructureHealth';
+import { DatabaseHealth } from '../components/admin/DatabaseHealth';
+import { ContentVersionHistory } from '../components/admin/ContentVersionHistory';
+import { AdminAnalyticsDashboard } from './analytics/AdminAnalyticsDashboard';
+import { UserManagementTable } from '../components/admin/UserManagementTable';
+import { PaymentVerificationQueue } from '../components/admin/PaymentVerificationQueue';
+import { AuditLogViewer } from '../components/admin/AuditLogViewer';
+import { Grid } from '../components/ui/Grid';
+import { CourseAnalytics } from '../components/admin/CourseAnalytics';
+import { AIChatInterface } from '../components/ui/AIChatInterface';
+import { SystemHealthDashboard } from '../components/admin/SystemHealthDashboard';
+import { ErrorTracker } from '../components/admin/ErrorTracker';
+import { IncidentRegister } from '../components/admin/IncidentRegister';
+import { PerformanceMetrics } from '../components/admin/PerformanceMetrics';
+
+const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
+  <div className={`p-6 rounded-xl border border-[var(--border)] bg-[var(--surface-dark)]`}>
+    <div className="flex justify-between items-start mb-4">
+      <div className={`p-3 rounded-lg bg-${color}-500/10 text-${color}-400`}>
+        <Icon size={24} />
+      </div>
+      <span className="text-sm text-[var(--muted)]">{change}</span>
+    </div>
+    <h3 className="text-[var(--muted)] text-sm mb-1">{title}</h3>
+    <div className="text-3xl font-bold">{value}</div>
+  </div>
+);
 
 interface AdminPortalProps {
-  session: any
-  onSignOut: () => void
+  session: any;
+  onSignOut: () => void;
 }
 
-export const AdminPortal: React.FC<AdminPortalProps> = ({ session, onSignOut }) => {
-  const [role, setRole] = useState<string>('')
-  const [activeTab, setActiveTab] = useState<string>('analytics')
-  const [loading, setLoading] = useState(true)
+export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
+  const [activeTab, setActiveTab] = useState('home');
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
-  // Analytics states
-  const [metrics, setMetrics] = useState({
-    totalStudents: 0,
-    activeEnrollments: 0,
-    pendingPayments: 0,
-    pendingGrading: 0
-  })
-
-  // Data queues
-  const [gradingQueue, setGradingQueue] = useState<any[]>([])
-  const [paymentsQueue, setPaymentsQueue] = useState<any[]>([])
-  const [studentsList, setStudentsList] = useState<any[]>([])
-  const [announcementsList, setAnnouncementsList] = useState<any[]>([])
-  const [forumQueue, setForumQueue] = useState<any[]>([])
-  const [enrollmentApplications, setEnrollmentApplications] = useState<any[]>([])
-  
-  const [waitlistQueue, setWaitlistQueue] = useState<any[]>([])
-  const [courseCapacities, setCourseCapacities] = useState<any[]>([])
-  const [newPasswordVal, setNewPasswordVal] = useState('')
-
-  // AI Tutor settings (D3 daily cap)
-  const [aiDailyLimit, setAiDailyLimit] = useState(20)
-  const [aiReviewDailyLimit, setAiReviewDailyLimit] = useState(120)
-  const [aiProviderLabel, setAiProviderLabel] = useState('mock')
-  const [aiSaveLoading, setAiSaveLoading] = useState(false)
-
-  // Create student account from admin
-  const [newStudentEmail, setNewStudentEmail] = useState('')
-  const [newStudentName, setNewStudentName] = useState('')
-  const [newStudentPassword, setNewStudentPassword] = useState('')
-  const [newStudentCourse, setNewStudentCourse] = useState('wd101')
-  const [createAccountLoading, setCreateAccountLoading] = useState(false)
-  const [createdStudentId, setCreatedStudentId] = useState<string | null>(null)
-
-  const fetchEnrollmentApplications = async () => {
-    try {
-      const data = await apiClient.admin.getEnrollmentApplications()
-      setEnrollmentApplications(data || [])
-    } catch (e) { console.error(e) }
-  }
-
-  const handleApproveApplication = async (app: any) => {
-    setActionLoading(true)
-    setMessage(null)
-    try {
-      // Auto-generate a strong temporary password
-      const tempPassword = 'Cdm@' + Math.random().toString(36).slice(2, 8).toUpperCase()
-      const data = await apiClient.admin.createStudentAccount({
-        email: app.email,
-        password: tempPassword,
-        full_name: app.full_name,
-        course_id: app.course_id || 'wd101'
-      })
-      // Mark application as approved
-      await apiClient.admin.updateEnrollmentApplication(app.id, { status: 'approved' })
-      setMessage({ type: 'success', text: `✅ Account created! Student ID: ${data.student_id}. Temp password: ${tempPassword} — Send this to ${app.email} / ${app.phone}` })
-      fetchEnrollmentApplications()
-      fetchAnalytics()
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message || 'Error creating account' })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const handleRejectApplication = async (id: string) => {
-    setActionLoading(true)
-    try {
-      await apiClient.admin.updateEnrollmentApplication(id, { status: 'rejected' })
-      setMessage({ type: 'success', text: 'Application rejected.' })
-      fetchEnrollmentApplications()
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const handleCreateStudentAccount = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setCreateAccountLoading(true)
-    setMessage(null)
-    try {
-      const data = await apiClient.admin.createStudentAccount({
-        email: newStudentEmail,
-        password: newStudentPassword,
-        full_name: newStudentName,
-        course_id: newStudentCourse
-      })
-      setCreatedStudentId(data.student_id)
-      setMessage({ type: 'success', text: `Account created! Student ID: ${data.student_id}` })
-      setNewStudentEmail('')
-      setNewStudentName('')
-      setNewStudentPassword('')
-      fetchAnalytics()
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message })
-    } finally {
-      setCreateAccountLoading(false)
-    }
-  }
-
-  const fetchWaitlistData = async () => {
-    try {
-      const waitlistData = await apiClient.admin.getWaitlist()
-      setWaitlistQueue(waitlistData.waitlist || waitlistData || [])
-
-      if (waitlistData.course_capacities) {
-        setCourseCapacities(Object.entries(waitlistData.course_capacities).map(([id, cap]: any) => ({ course_id: id, ...cap })))
-      } else {
-        try {
-          const capacities = await apiClient.admin.getCourseCapacities()
-          setCourseCapacities(capacities || [])
-        } catch (_) {}
-      }
-    } catch (e) {
-      console.error('Error fetching waitlist data:', e)
-    }
-  }
-
-  const handlePromoteStudent = async (enrollmentId: string, targetBatch: number) => {
-    setActionLoading(true)
-    setMessage(null)
-    try {
-      await apiClient.admin.promoteStudent(enrollmentId, targetBatch)
-      setMessage({ type: 'success', text: `Student successfully promoted to Batch ${targetBatch}!` })
-      fetchWaitlistData()
-      fetchAnalytics()
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message || 'Error promoting student' })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const handleAdminResetPassword = async (email: string) => {
-    if (!email) {
-      setMessage({ type: 'error', text: 'Student email is not registered.' })
-      return
-    }
-    if (!newPasswordVal.trim()) return
-    setActionLoading(true)
-    setMessage(null)
-    try {
-      const data = await apiClient.admin.resetPassword({ email, new_password: newPasswordVal })
-      if (data) {
-        setMessage({ type: 'success', text: 'Student password reset successfully!' })
-        setNewPasswordVal('')
-      } else {
-        setMessage({ type: 'error', text: 'Failed to reset password. Check email match.' })
-      }
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Error resetting password' })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  // Promote / Demote a student to teacher role
-  const handleSetRole = async (profileId: string, newRole: 'teacher' | 'student') => {
-    setActionLoading(true)
-    setMessage(null)
-    try {
-      await apiClient.admin.updateUserRole(profileId, { role: newRole })
-      setMessage({ type: 'success', text: `User role updated to ${newRole.toUpperCase()} successfully!` })
-      setSelectedStudent((prev: any) => prev ? { ...prev, role: newRole } : prev)
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message || 'Error updating role' })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const handleFlagAI = async (id: string, isFlagged: boolean) => {
-    try {
-      await apiClient.admin.flagAssignment(id, { is_ai_flagged: isFlagged })
-      fetchQueues()
-      setMessage({ type: 'success', text: isFlagged ? 'Submission flagged for suspected AI!' : 'AI flag removed.' })
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message })
-    }
-  }
-
-  // Search/Filter states
-  const [studentSearch, setStudentSearch] = useState('')
-  const [selectedStudent, setSelectedStudent] = useState<any>(null)
-  const [studentHistory, setStudentHistory] = useState<any>({ progress: [], attempts: [], certificates: [] })
-
-  // Cert Templates State
-  const [certTemplates, setCertTemplates] = useState<any[]>([])
-  const [courses, setCourses] = useState<any[]>([])
-
-  const fetchCertTemplates = async () => {
-    try {
-      const { data } = await supabase.from('certificate_templates').select('*, courses(title)')
-      setCertTemplates(data || [])
-      const { data: coursesData } = await supabase.from('courses').select('id, title').order('id')
-      setCourses(coursesData || [])
-    } catch(e) { console.error(e) }
-  }
-
-  useEffect(() => {
-    if (activeTab === 'certificates') {
-      fetchCertTemplates()
-    }
-  }, [activeTab])
-
-  // Modal / Form states
-  const [feedbackTextMap, setFeedbackTextMap] = useState<Record<string, string>>({})
-  const [rejectReason, setRejectReason] = useState('')
-  const [announcementText, setAnnouncementText] = useState('')
-  const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null)
-  const [showRejectModal, setShowRejectModal] = useState<string | null>(null) // Holds payment ID to reject
-
-  // Content form states
-  const [actionLoading, setActionLoading] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-
-  const verifyRole = async () => {
-    try {
-      const profile = await apiClient.auth.getProfile()
-      if (!profile || (profile.role !== 'admin' && profile.role !== 'teacher')) {
-        setRole('student')
-      } else {
-        setRole(profile.role)
-      }
-    } catch (e) {
-      setRole('student')
-    }
-  }
-
-  const fetchAnalytics = async () => {
-    try {
-      const analytics = await apiClient.admin.getAnalytics()
-      setMetrics({
-        totalStudents: analytics.total_students || 0,
-        activeEnrollments: analytics.active_enrollments || 0,
-        pendingPayments: analytics.pending_payments || 0,
-        pendingGrading: analytics.pending_grading || 0
-      })
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
-  const fetchQueues = async () => {
-    try {
-      // Fetch grading queue via API
-      const gradData = await apiClient.admin.getPendingGrading()
-      setGradingQueue(gradData || [])
-
-      // Fetch payment queue via API
-      const payData = await apiClient.admin.getPendingPayments()
-      
-      // Generate signed URLs for receipt images
-      const paymentsWithUrls = await Promise.all(
-        (payData || []).map(async (payment: any) => {
-          let signedUrl = null
-          if (payment.receipt_file_path) {
-            // Generate signed URL for new Storage-based receipts
-            const { data: signedData } = await supabase
-              .storage
-              .from('payment_receipts')
-              .createSignedUrl(payment.receipt_file_path, 60) // 60 second expiry
-            signedUrl = signedData?.signedUrl || null
-          } else if (payment.receipt_url && payment.receipt_url.startsWith('data:image')) {
-            // Legacy Base64 receipts
-            signedUrl = payment.receipt_url
-          }
-          return { ...payment, signedUrl }
-        })
-      )
-      setPaymentsQueue(paymentsWithUrls || [])
-
-      // Fetch announcements via API
-      const annData = await apiClient.announcements.getAll()
-      setAnnouncementsList(annData || [])
-
-      // Fetch forum held posts via API
-      const forumData = await apiClient.admin.getHeldForumPosts()
-      setForumQueue(forumData || [])
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
-  useEffect(() => {
-    const initialize = async () => {
-      await verifyRole()
-    }
-    initialize()
-  }, [session])
-
-  useEffect(() => {
-    if (role === 'admin' || role === 'teacher') {
-      fetchAnalytics()
-      fetchQueues()
-      fetchWaitlistData()
-      fetchAiSettings()
-      setLoading(false)
-    } else if (role === 'student') {
-      setLoading(false)
-    }
-  }, [role, activeTab])
-
-  const fetchAiSettings = async () => {
-    try {
-      const settings = await apiClient.ai.getSettings()
-      setAiDailyLimit(settings.daily_limit || 20)
-      setAiReviewDailyLimit(settings.review_daily_limit || 120)
-      setAiProviderLabel(settings.provider || 'mock')
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
-  const handleSaveAiSettings = async () => {
-    setAiSaveLoading(true)
-    setMessage(null)
-    try {
-      const settings = await apiClient.ai.updateSettings({
-        daily_limit: Math.max(1, Math.floor(Number(aiDailyLimit) || 1)),
-        review_daily_limit: Math.max(1, Math.floor(Number(aiReviewDailyLimit) || 1)),
-      })
-      setAiDailyLimit(settings.daily_limit)
-      setAiReviewDailyLimit(settings.review_daily_limit)
-      setMessage({ type: 'success', text: 'AI daily limits updated.' })
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message || 'Error updating AI settings' })
-    } finally {
-      setAiSaveLoading(false)
-    }
-  }
-
-  const handleGradeSubmission = async (id: string, status: 'approved' | 'rejected') => {
-    setActionLoading(true)
-    setMessage(null)
-    try {
-      await apiClient.admin.gradeAssignment(id, {
-        status,
-        feedback: feedbackTextMap[id] || ''
-      })
-      setMessage({ type: 'success', text: `Submission marked as ${status.toUpperCase()}!` })
-      setFeedbackTextMap(prev => {
-        const next = { ...prev }
-        delete next[id]
-        return next
-      })
-      fetchQueues()
-      fetchAnalytics()
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message || 'Error grading assignment' })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const handleApprovePayment = async (id: string) => {
-    setActionLoading(true)
-    setMessage(null)
-    try {
-      await apiClient.admin.updatePayment(id, { status: 'approved' })
-      setMessage({ type: 'success', text: 'Payment approved! Student retakes unlocked.' })
-      fetchQueues()
-      fetchAnalytics()
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message || 'Error approving payment' })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const handleRejectPayment = async () => {
-    if (!showRejectModal || !rejectReason.trim()) return
-    setActionLoading(true)
-    setMessage(null)
-    try {
-      await apiClient.admin.updatePayment(showRejectModal!, {
-        status: 'rejected',
-        rejection_reason: rejectReason
-      })
-      setMessage({ type: 'success', text: 'Payment receipt rejected.' })
-      setRejectReason('')
-      setShowRejectModal(null)
-      fetchQueues()
-      fetchAnalytics()
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message || 'Error rejecting payment' })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const handleModeratePost = async (id: string, action: 'approve' | 'delete') => {
-    setActionLoading(true)
-    setMessage(null)
-    try {
-      if (action === 'approve') {
-        await apiClient.admin.moderateForumPost(id, { status: 'approved' })
-        setMessage({ type: 'success', text: 'Post approved.' })
-      } else {
-        await apiClient.admin.deleteForumPost(id)
-        setMessage({ type: 'success', text: 'Post deleted.' })
-      }
-      fetchQueues()
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const handlePostAnnouncement = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!announcementText.trim()) return
-    setActionLoading(true)
-    setMessage(null)
-    try {
-      await apiClient.announcements.create({ content: announcementText })
-      setMessage({ type: 'success', text: 'Announcement broadcasted!' })
-      setAnnouncementText('')
-      fetchQueues()
-    } catch (e: any) {
-      setMessage({ type: 'error', text: e.message || 'Error creating announcement' })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const searchStudents = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!studentSearch.trim()) return
-    setLoading(true)
-    try {
-      const data = await apiClient.admin.searchStudents(studentSearch)
-      setStudentsList(data || [])
-      setSelectedStudent(null)
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchStudentHistory = async (studentId: string) => {
-    try {
-      const progress = await apiClient.courses.getProgress()
-      const attempts = await apiClient.courses.getQuizAttempts()
-      const certs = await apiClient.certificates.getUserCertificates()
-
-      setStudentHistory({
-        progress: progress.filter((p: any) => p.student_id === studentId) || [],
-        attempts: attempts.filter((a: any) => a.student_id === studentId) || [],
-        certificates: certs.filter((c: any) => c.student_id === studentId) || []
-      })
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="splash-container">
-        <Loader2 className="animate-spin" size={40} style={{ color: 'var(--color-cyan)' }} />
-        <p>Verifying Access Rights...</p>
-      </div>
-    )
-  }
-
-  if (role === 'student') {
-    return (
-      <div className="full-screen-view theme-dark" style={{ background: '#07060D', color: '#FFFFFF', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-        <ShieldAlert size={64} style={{ color: 'var(--color-danger)' }} />
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Access Denied</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '300px' }}>
-          This area is restricted to administrators and teachers only. Student accounts are unauthorized.
-        </p>
-        <button className="btn btn-primary" onClick={() => window.location.hash = ''} style={{ maxWidth: '200px' }}>
-          Go to Dashboard
-        </button>
-      </div>
-    )
-  }
+  const navItems = [
+    { id: 'home', label: 'Dashboard Home', icon: Activity },
+    { id: 'students', label: 'Students', icon: Users },
+    { id: 'teachers', label: 'Teachers', icon: ShieldCheck },
+    { id: 'courses', label: 'Courses & Batches', icon: BookOpen },
+    { id: 'finance', label: 'Financials', icon: CreditCard },
+    { id: 'logs', label: 'Audit Logs', icon: FileText },
+    { id: 'health', label: 'System Health', icon: Activity },
+    { id: 'infrastructure', label: 'Infrastructure', icon: Shield },
+    { id: 'database', label: 'Database Health', icon: Database },
+    { id: 'analytics', label: 'Course Analytics', icon: Activity },
+    { id: 'versions', label: 'Version History', icon: FileText },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: 'var(--bg-primary)' }}>
-      {/* Header bar */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          padding: '16px',
-          backgroundColor: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border-color)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/codeme.jpg" alt="Logo" style={{ width: '36px', height: '36px', borderRadius: '8px' }} />
-          <div>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 700 }}>CodeMe Special</h4>
-            <span style={{ fontSize: '0.65rem', color: 'var(--color-purple)', fontWeight: 700, textTransform: 'uppercase' }}>
-              {role.toUpperCase()} PORTAL
-            </span>
+    <>
+    <div style={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden', backgroundColor: 'var(--bg-primary)' }}>
+      {/* Sidebar */}
+      <div style={{ width: '260px', backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border-default)' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, color: 'var(--text-primary)' }}>ERP Admin Console</h2>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0' }}>CodeMe Academy</p>
+        </div>
+        
+        <nav style={{ flex: 1, padding: '16px 8px', overflowY: 'auto' }}>
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', marginBottom: '4px',
+                borderRadius: '8px', border: 'none', background: activeTab === item.id ? 'var(--color-blue)' : 'transparent',
+                color: activeTab === item.id ? 'white' : 'var(--text-secondary)', cursor: 'pointer', textAlign: 'left',
+                fontWeight: activeTab === item.id ? 'bold' : 'normal', transition: 'all 0.2s'
+              }}
+            >
+              <item.icon size={18} /> {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div style={{ padding: '16px', borderTop: '1px solid var(--border-default)' }}>
+          <button onClick={() => { window.location.hash = ''; }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginBottom: '8px' }}>
+            <ChevronLeft size={16} /> Exit to Platform
+          </button>
+          <button onClick={onSignOut} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'rgba(239,68,68,0.1)', color: 'var(--color-red)', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+            <LogOut size={16} /> Sign Out
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Top Navbar */}
+        <div style={{ height: '64px', backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
+          <h1 style={{ fontSize: '20px', fontWeight: 'bold', textTransform: 'capitalize' }}>
+            {navItems.find(i => i.id === activeTab)?.label || 'Dashboard'}
+          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button 
+              onClick={() => setShowAIAssistant(true)}
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: '8px',
+                background: 'var(--color-blue)', color: '#fff', 
+                border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer'
+              }}
+            >
+              <Zap size={16} />
+              AI Assistant
+            </button>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--color-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
+              AD
+            </div>
           </div>
         </div>
 
-        <button 
-          onClick={onSignOut} 
-          style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-        >
-          <LogOut size={20} />
-        </button>
-      </div>
-
-      {/* Responsive Horizontal Menu Tabs for Mobile */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          backgroundColor: 'var(--bg-secondary)', 
-          borderBottom: '1px solid var(--border-color)',
-          overflowX: 'auto',
-          whiteSpace: 'nowrap',
-          padding: '8px 12px',
-          gap: '8px',
-          scrollbarWidth: 'none'
-        }}
-      >
-        <button 
-          onClick={() => { setActiveTab('analytics'); setMessage(null); }}
-          className="badge" 
-          style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'analytics' ? 'var(--color-blue)' : 'var(--bg-primary)', color: activeTab === 'analytics' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-        >
-          <BarChart2 size={14} style={{ marginRight: '6px' }} />
-          Analytics
-        </button>
-
-        <button 
-          onClick={() => { setActiveTab('grading'); setMessage(null); }}
-          className="badge" 
-          style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'grading' ? 'var(--color-blue)' : 'var(--bg-primary)', color: activeTab === 'grading' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-        >
-          <CheckSquare size={14} style={{ marginRight: '6px' }} />
-          Projects ({metrics.pendingGrading})
-        </button>
-
-        {role === 'admin' && (
-          <button 
-            onClick={() => { setActiveTab('payments'); setMessage(null); }}
-            className="badge" 
-            style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'payments' ? 'var(--color-blue)' : 'var(--bg-primary)', color: activeTab === 'payments' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-          >
-            <CreditCard size={14} style={{ marginRight: '6px' }} />
-            Payments ({metrics.pendingPayments})
-          </button>
-        )}
-
-        <button 
-          onClick={() => { setActiveTab('students'); setMessage(null); }}
-          className="badge" 
-          style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'students' ? 'var(--color-blue)' : 'var(--bg-primary)', color: activeTab === 'students' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-        >
-          <Users size={14} style={{ marginRight: '6px' }} />
-          Students
-        </button>
-
-        <button 
-          onClick={() => { setActiveTab('content'); setMessage(null); }}
-          className="badge" 
-          style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'content' ? 'var(--color-blue)' : 'var(--bg-primary)', color: activeTab === 'content' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-        >
-          <BookOpen size={14} style={{ marginRight: '6px' }} />
-          Curriculum
-        </button>
-
-        <button 
-          onClick={() => { setActiveTab('announcements'); setMessage(null); }}
-          className="badge" 
-          style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'announcements' ? 'var(--color-blue)' : 'var(--bg-primary)', color: activeTab === 'announcements' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-        >
-          <Volume2 size={14} style={{ marginRight: '6px' }} />
-          Announce
-        </button>
-
-        <button 
-          onClick={() => { setActiveTab('forum'); setMessage(null); }}
-          className="badge" 
-          style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'forum' ? 'var(--color-blue)' : 'var(--bg-primary)', color: activeTab === 'forum' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-        >
-          <MessageCircle size={14} style={{ marginRight: '6px' }} />
-          Forum Mod ({forumQueue.length})
-        </button>
-
-        {role === 'admin' && (
-          <button 
-            onClick={() => { setActiveTab('waitlist'); setMessage(null); }}
-            className="badge" 
-            style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'waitlist' ? 'var(--color-blue)' : 'var(--bg-primary)', color: activeTab === 'waitlist' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-          >
-            <Users size={14} style={{ marginRight: '6px' }} />
-            Waitlist ({waitlistQueue.length})
-          </button>
-        )}
-
-        {role === 'admin' && (
-          <button 
-            onClick={() => { setActiveTab('applications'); setMessage(null); fetchEnrollmentApplications(); }}
-            className="badge" 
-            style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'applications' ? 'var(--color-purple)' : 'var(--bg-primary)', color: activeTab === 'applications' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-          >
-            <UserPlus size={14} style={{ marginRight: '6px' }} />
-            Applications ({enrollmentApplications.filter(a => a.status === 'pending').length})
-          </button>
-        )}
-
-        {role === 'admin' && (
-          <button 
-            onClick={() => { setActiveTab('certificates'); setMessage(null); }}
-            className="badge" 
-            style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'certificates' ? 'var(--color-purple)' : 'var(--bg-primary)', color: activeTab === 'certificates' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-          >
-            <Award size={14} style={{ marginRight: '6px' }} />
-            Cert Templates
-          </button>
-        )}
-
-        {role === 'admin' && (
-          <button 
-            onClick={() => { setActiveTab('teachers'); setMessage(null); }}
-            className="badge" 
-            style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'teachers' ? 'var(--color-blue)' : 'var(--bg-primary)', color: activeTab === 'teachers' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-          >
-            <UserCheck size={14} style={{ marginRight: '6px' }} />
-            Instructors
-          </button>
-        )}
-
-        {role === 'admin' && (
-          <button 
-            onClick={() => { setActiveTab('enterprise'); setMessage(null); }}
-            className="badge" 
-            style={{ border: 'none', cursor: 'pointer', backgroundColor: activeTab === 'enterprise' ? '#10B981' : 'var(--bg-primary)', color: activeTab === 'enterprise' ? '#FFFFFF' : 'var(--text-secondary)', padding: '8px 14px' }}
-          >
-            <Settings size={14} style={{ marginRight: '6px' }} />
-            Enterprise
-          </button>
-        )}
-      </div>
-
-      {/* Main Panel Workspaces */}
-      <div className="app-content" style={{ padding: '16px', overflowX: 'auto' }}>
-
-        {message && (
-          <div 
-            style={{ 
-              padding: '12px 16px', 
-              borderRadius: '12px', 
-              fontSize: '0.85rem',
-              backgroundColor: message.type === 'success' ? '#ECFDF5' : '#FEF2F2',
-              color: message.type === 'success' ? '#065F46' : '#991B1B',
-              border: message.type === 'success' ? '1px solid #A7F3D0' : '1px solid #FCA5A5',
-              marginBottom: '16px'
-            }}
-          >
-            {message.text}
-          </div>
-        )}
-
-        {/* 1. ANALYTICS VIEW */}
-        {activeTab === 'analytics' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.25rem', fontWeight: 800 }}>Overview Status</h3>
-            <MetricsCards metrics={metrics} />
+        {/* Content Area */}
+        <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            {activeTab === 'health' && (
+              <div className="flex flex-col gap-6">
+                <SystemHealthDashboard />
+                <ErrorTracker />
+                <IncidentRegister />
+                <PerformanceMetrics />
+              </div>
+            )}
             
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>Nigeria Intake Batches</h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Each batch is capped at 25 students. Newly registered students route to next batches.</p>
-            </div>
-
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>AI Tutor Settings</h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Provider: <strong>{aiProviderLabel}</strong> (mock preview). The AI tutor gives hint-only guidance and never provides full solutions.
-              </p>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Daily hints per student</label>
-                <input
-                  type="number"
-                  min={1}
-                  className="input-field"
-                  value={aiDailyLimit}
-                  onChange={e => setAiDailyLimit(Number(e.target.value))}
-                  style={{ width: '90px' }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Daily AI reviews per teacher</label>
-                <input
-                  type="number"
-                  min={1}
-                  className="input-field"
-                  value={aiReviewDailyLimit}
-                  onChange={e => setAiReviewDailyLimit(Number(e.target.value))}
-                  style={{ width: '90px' }}
-                />
-              </div>
+            {activeTab === 'infrastructure' && <InfrastructureHealth />}
+            {activeTab === 'database' && <DatabaseHealth />}
+            {activeTab === 'analytics' && <CourseAnalytics />}
+            {activeTab === 'versions' && <ContentVersionHistory />}
+            
+            {activeTab === 'home' && (
               <div>
-                <button className="btn btn-primary" onClick={handleSaveAiSettings} disabled={aiSaveLoading} style={{ fontSize: '0.75rem', padding: '8px 14px' }}>
-                  {aiSaveLoading ? <Loader2 size={13} className="animate-spin" /> : 'Save'}
-                </button>
+                <Grid columns={{ sm: 1, md: 2, lg: 4 }} gap="lg" className="mb-8">
+                  <StatCard title="Total Students" value="1,245" change="+12%" icon={Users} color="blue" />
+                  <StatCard title="Active Courses" value="24" change="+2" icon={BookOpen} color="green" />
+                  <StatCard title="Monthly Revenue" value="$45,200" change="+8.5%" icon={CreditCard} color="purple" />
+                  <StatCard title="System Health" value="99.9%" change="Optimal" icon={Activity} color="emerald" />
+                </Grid>
+                {/* Additional dashboard widgets can go here */}
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* 2. GRADING QUEUE */}
-        {activeTab === 'grading' && (
-          <GradingQueue
-            gradingQueue={gradingQueue}
-            actionLoading={actionLoading}
-            feedbackTextMap={feedbackTextMap}
-            handleFeedbackChange={(id, text) => setFeedbackTextMap(prev => ({ ...prev, [id]: text }))}
-            handleGradeSubmission={handleGradeSubmission}
-            handleFlagAI={handleFlagAI}
-          />
-        )}
-
-        {/* 3. PAYMENT QUEUE */}
-        {activeTab === 'payments' && role === 'admin' && (
-          <PaymentQueue
-            paymentsQueue={paymentsQueue}
-            actionLoading={actionLoading}
-            handleApprovePayment={handleApprovePayment}
-            handleRejectPayment={handleRejectPayment}
-            showRejectModal={showRejectModal}
-            setShowRejectModal={setShowRejectModal}
-            rejectReason={rejectReason}
-            setRejectReason={setRejectReason}
-            selectedReceipt={selectedReceipt}
-            setSelectedReceipt={setSelectedReceipt}
-          />
-        )}
-
-        {/* 4. STUDENT MANAGEMENT */}
-        {activeTab === 'students' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.25rem', fontWeight: 800 }}>Student Management</h3>
+            {activeTab === 'students' && <UserManagementTable />}
+            {activeTab === 'teachers' && <UserManagementTable />}
             
-            <form onSubmit={searchStudents} style={{ display: 'flex', gap: '8px' }}>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  placeholder="Search by ID or name..." 
-                  value={studentSearch}
-                  onChange={(e) => setStudentSearch(e.target.value)}
-                  style={{ paddingLeft: '38px', height: '42px', minHeight: '42px' }}
-                />
-              </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '80px', height: '42px', minHeight: '42px', padding: 0 }}>Search</button>
-            </form>
-
-            {/* Results */}
-            {!selectedStudent ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {studentsList.map(st => (
-                  <div 
-                    key={st.id} 
-                    onClick={() => {
-                      setSelectedStudent(st)
-                      fetchStudentHistory(st.id)
-                    }}
-                    className="card" 
-                    style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px' }}
-                  >
-                    <div>
-                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>{st.full_name}</h4>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>ID: {st.student_id}</span>
-                    </div>
-                    <span className="badge badge-blue" style={{ fontSize: '0.65rem' }}>View Files</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* Detail student history view */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <button 
-                  onClick={() => setSelectedStudent(null)} 
-                  className="btn btn-secondary" 
-                  style={{ gap: '6px', padding: '8px', fontSize: '0.75rem', maxWidth: '100px' }}
-                >
-                  <ArrowLeft size={14} /> Back
-                </button>
-
-                <div className="card" style={{ background: 'linear-gradient(135deg, var(--color-blue) 0%, rgba(139, 47, 166, 0.7) 100%)', color: '#FFFFFF', border: 'none' }}>
-                  <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 800 }}>{selectedStudent.full_name}</h3>
-                  <p style={{ fontSize: '0.75rem', opacity: 0.9, marginTop: '2px' }}>Student ID: {selectedStudent.student_id}</p>
-                  <p style={{ fontSize: '0.75rem', opacity: 0.9 }}>Created: {new Date(selectedStudent.created_at).toLocaleDateString()}</p>
-                </div>
-
-                <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>Academic Performance</h4>
-                  
-                  <div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Lessons Read ({studentHistory.progress.length}/12)</span>
-                    <div className="progress-container" style={{ height: '6px', marginTop: '4px' }}>
-                      <div className="progress-bar-fill" style={{ width: `${Math.round((studentHistory.progress.length / 12) * 100)}%` }}></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Exam Retake Attempts</span>
-                    {studentHistory.attempts.length === 0 ? (
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>No exams attempted yet.</p>
-                    ) : (
-                      studentHistory.attempts.map((att: any, idx: number) => (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', borderBottom: '1px solid var(--border-color)', padding: '4px 0' }}>
-                          <span>{att.quizzes?.title}</span>
-                          <span style={{ color: att.passed ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 700 }}>
-                            {att.score}% ({att.passed ? 'Passed' : 'Failed'})
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Certificates Issued</span>
-                    {studentHistory.certificates.length === 0 ? (
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>No certificates generated.</p>
-                    ) : (
-                      studentHistory.certificates.map((cert: any, idx: number) => (
-                        <div key={idx} className="badge badge-success" style={{ fontSize: '0.65rem' }}>
-                          HTML Complete: {cert.certificate_code}
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid var(--color-danger)', marginTop: '8px' }}>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-danger)' }}>Danger Zone: Reset Student Password</h4>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      This overrides the student's encrypted login credentials. Hand the new password directly to the student.
-                    </p>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                      <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                        <label style={{ fontSize: '0.7rem' }}>NEW PASSWORD</label>
-                        <input 
-                          type="password" 
-                          className="input-field" 
-                          placeholder="e.g. Pass123!" 
-                          value={newPasswordVal}
-                          onChange={(e) => setNewPasswordVal(e.target.value)}
-                          style={{ height: '36px', minHeight: '36px', padding: '8px', fontSize: '0.8rem' }}
-                        />
-                      </div>
-                      <button 
-                        onClick={() => handleAdminResetPassword(selectedStudent.email)}
-                        className="btn"
-                        style={{ backgroundColor: 'var(--color-danger)', color: '#FFFFFF', height: '36px', minHeight: '36px', padding: '0 12px', fontSize: '0.8rem', cursor: 'pointer' }}
-                        disabled={actionLoading || !newPasswordVal.trim()}
-                      >
-                        Reset Password
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Role Management — Admin Only */}
-                {role === 'admin' && (
-                  <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid var(--color-purple)' }}>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-purple)' }}>⚡ Staff Role Management</h4>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      Current Role: <strong>{selectedStudent.role || 'student'}</strong>. Promoting to Teacher grants Admin Portal access.
-                    </p>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      {(!selectedStudent.role || selectedStudent.role === 'student') ? (
-                        <button
-                          onClick={() => handleSetRole(selectedStudent.id, 'teacher')}
-                          className="btn"
-                          style={{ backgroundColor: 'var(--color-purple)', color: '#FFFFFF', padding: '8px 14px', fontSize: '0.8rem', cursor: 'pointer' }}
-                          disabled={actionLoading}
-                        >
-                          ⬆️ Promote to Teacher
-                        </button>
-                      ) : selectedStudent.role === 'teacher' ? (
-                        <>
-                          <span className="badge badge-purple" style={{ fontSize: '0.75rem', padding: '6px 12px' }}>✦ Currently a Teacher</span>
-                          <button
-                            onClick={() => handleSetRole(selectedStudent.id, 'student')}
-                            className="btn btn-secondary"
-                            style={{ padding: '8px 14px', fontSize: '0.8rem', cursor: 'pointer' }}
-                            disabled={actionLoading}
-                          >
-                            ⬇️ Demote to Student
-                          </button>
-                        </>
-                      ) : (
-                        <span className="badge badge-purple" style={{ fontSize: '0.75rem' }}>Admin — Cannot Change</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 5. CONTENT MANAGEMENT */}
-        {activeTab === 'content' && (
-          <ContentManager />
-        )}
-
-        {/* 5.5 FORUM MODERATION */}
-        {activeTab === 'forum' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.25rem', fontWeight: 800 }}>Forum Moderation Queue</h3>
-            {forumQueue.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No posts held for moderation.</div>
-            ) : (
-              forumQueue.map(post => (
-                <div key={post.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700 }}>{post.profiles?.full_name || 'Anonymous'}</h4>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>ID: {post.profiles?.student_id || 'N/A'}</span>
-                    </div>
-                    <span className="badge badge-danger" style={{ fontSize: '0.65rem' }}>HELD (Auto-Flagged)</span>
-                  </div>
-                  
-                  <div style={{ backgroundColor: 'var(--bg-primary)', padding: '10px', borderRadius: '8px', fontSize: '0.8rem' }}>
-                    <h5 style={{ fontWeight: 700, marginBottom: '6px' }}>{post.title}</h5>
-                    <p style={{ fontFamily: 'var(--font-main)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{post.content}</p>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    <button 
-                      className="btn" 
-                      onClick={() => handleModeratePost(post.id, 'approve')}
-                      disabled={actionLoading}
-                      style={{ backgroundColor: 'var(--color-success)', color: '#FFFFFF', padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer' }}
-                    >
-                      {actionLoading ? <Loader2 className="animate-spin" size={14} /> : 'Approve Post'}
-                    </button>
-                    <button 
-                      className="btn" 
-                      onClick={() => handleModeratePost(post.id, 'delete')}
-                      disabled={actionLoading}
-                      style={{ backgroundColor: 'var(--color-danger)', color: '#FFFFFF', padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer' }}
-                    >
-                      Delete (Ban Term)
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* 6. ANNOUNCEMENT BROADCASTER */}
-        {activeTab === 'announcements' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.25rem', fontWeight: 800 }}>Broadcast Composers</h3>
+            {activeTab === 'finance' && <PaymentVerificationQueue />}
             
-            <form onSubmit={handlePostAnnouncement} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>Publish Announcement Banner</h4>
-              <div className="form-group">
-                <label htmlFor="announce">ANNOUNCEMENT TEXT</label>
-                <textarea 
-                  id="announce"
-                  className="input-field" 
-                  placeholder="e.g. Module 3 test has been updated! Please review the forms section..." 
-                  value={announcementText}
-                  onChange={(e) => setAnnouncementText(e.target.value)}
-                  required
-                  style={{ minHeight: '100px' }}
-                />
-              </div>
-              <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                {actionLoading ? <Loader2 className="animate-spin" size={20} /> : 'Broadcast to Student Dashboards'}
-              </button>
-            </form>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>Broadcasting History</h4>
-              {announcementsList.map((ann, idx) => (
-                <div key={idx} className="card" style={{ padding: '12px' }}>
-                  <p style={{ fontSize: '0.8rem', lineHeight: 1.4 }}>{ann.content}</p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                    <span>By: {ann.profiles?.full_name || 'Admin'}</span>
-                    <span>{new Date(ann.created_at).toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 7. WAITLIST MANAGER */}
-        {activeTab === 'waitlist' && role === 'admin' && (
-          <WaitlistManager 
-            waitlistQueue={waitlistQueue}
-            courseCapacities={courseCapacities}
-            actionLoading={actionLoading}
-            onPromoteStudent={handlePromoteStudent}
-          />
-        )}
-
-        {/* ENROLLMENT APPLICATIONS TAB */}
-        {activeTab === 'applications' && role === 'admin' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.1rem', fontWeight: 800 }}>Enrollment Applications</h3>
-              <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
-                {enrollmentApplications.filter(a => a.status === 'pending').length} pending
-              </span>
-            </div>
-
-            {/* ── Application Cards ── */}
-            {enrollmentApplications.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
-                <UserCheck size={32} style={{ marginBottom: '12px', opacity: 0.4 }} />
-                <p>No enrollment applications yet. Share the landing page for students to apply.</p>
-              </div>
-            ) : (
-              enrollmentApplications.map(app => (
-                <div key={app.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                        <h4 style={{ fontWeight: 700, fontSize: '0.95rem' }}>{app.full_name}</h4>
-                        <span className={`badge ${app.status === 'pending' ? 'badge-blue' : app.status === 'approved' ? '' : 'badge-danger'}`}
-                          style={{ fontSize: '0.65rem', backgroundColor: app.status === 'approved' ? 'rgba(16,185,129,0.15)' : undefined, color: app.status === 'approved' ? '#10B981' : undefined }}>
-                          {app.status}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '2px' }}>📧 {app.email}</p>
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '2px' }}>📱 {app.phone}</p>
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '2px' }}>📚 {app.courses?.title || app.course_id}</p>
-                      <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>Applied: {new Date(app.created_at).toLocaleDateString()}</p>
-                    </div>
-                    {app.status === 'pending' && (
-                      <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                        <button
-                          onClick={() => handleApproveApplication(app)}
-                          disabled={actionLoading}
-                          className="btn"
-                          style={{ background: '#10B981', color: '#fff', padding: '8px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}
-                        >
-                          <UserCheck size={14} /> Approve & Create Account
-                        </button>
-                        <button
-                          onClick={() => handleRejectApplication(app.id)}
-                          disabled={actionLoading}
-                          className="btn btn-secondary"
-                          style={{ padding: '8px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}
-                        >
-                          <UserX size={14} /> Reject
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
+            {activeTab === 'logs' && <AuditLogViewer />}
+            
+            {activeTab === 'analytics' && (
+              <AdminAnalyticsDashboard />
             )}
 
-            {/* ── Manually Create Student Account ── */}
-            <div className="card" style={{ border: '1px solid var(--color-purple)', marginTop: '8px' }}>
-              <h4 style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-purple)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                <UserPlus size={16} /> Manually Create Student Account
-              </h4>
-              {createdStudentId && (
-                <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(16,185,129,0.1)', color: '#10B981', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.2)', fontSize: '0.85rem' }}>
-                  <strong>Success!</strong> Account created with Student ID: {createdStudentId}. The student is automatically enrolled in Batch 1 (or 2 if full).
-                </div>
-              )}
-              <form onSubmit={handleCreateStudentAccount} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label>FULL NAME</label>
-                    <input className="input-field" placeholder="Fatima Abdullahi" value={newStudentName} onChange={e => setNewStudentName(e.target.value)} required />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label>EMAIL ADDRESS</label>
-                    <input type="email" className="input-field" placeholder="fatima@gmail.com" value={newStudentEmail} onChange={e => setNewStudentEmail(e.target.value)} required />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label>TEMPORARY PASSWORD</label>
-                    <input className="input-field" placeholder="Min 8 characters" value={newStudentPassword} onChange={e => setNewStudentPassword(e.target.value)} required minLength={8} />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label>COURSE</label>
-                    <select title="Select course" aria-label="Select course for enrollment" className="input-field" value={newStudentCourse} onChange={e => setNewStudentCourse(e.target.value)}>
-                      <option value="wd101">HTML Fundamentals (WD101)</option>
-                      <option value="css">CSS & Responsive Design</option>
-                      <option value="js">JavaScript Programming</option>
-                      <option value="react">React Framework</option>
-                      <option value="backend">Backend Development</option>
-                      <option value="fullstack">Full Stack Bootcamp</option>
-                      <option value="analytics">Data Analytics</option>
-                      <option value="science">Data Science & AI</option>
-                    </select>
-                  </div>
-                </div>
-                <button type="submit" className="btn btn-primary" disabled={createAccountLoading} style={{ display: 'flex', alignItems: 'center', gap: '6px', width: 'fit-content' }}>
-                  {createAccountLoading ? <Loader2 size={14} className="animate-spin" /> : <Key size={14} />}
-                  Create Account & Enroll
-                </button>
-              </form>
-            </div>
+            {['courses'].includes(activeTab) && (
+              <div style={{ textAlign: 'center', padding: '64px', color: 'var(--text-secondary)' }}>
+                <Settings size={48} style={{ opacity: 0.3, margin: '0 auto 16px' }} />
+                <h3>Module under construction</h3>
+                <p>This section is being wired into the ERP backbone.</p>
+              </div>
+            )}
           </div>
-        )}
-
-        {/* CERTIFICATE TEMPLATES TAB */}
-        {activeTab === 'certificates' && role === 'admin' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.25rem', fontWeight: 800 }}>Certificate Templates</h3>
-
-            <div className="card" style={{ padding: '20px' }}>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '16px', fontSize: '0.9rem' }}>
-                Manage the default certificate template. Each course uses this template when issuing certificates.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {courses.map((c: any) => (
-                  <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div>
-                      <strong style={{ display: 'block', fontSize: '0.95rem', marginBottom: '4px' }}>{c.title}</strong>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {c.id}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        {certTemplates.find((t: any) => t.course_id === c.id) ? '✅ Custom' : '📄 Default'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                {courses.length === 0 && (
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', padding: '16px' }}>No courses found.</p>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <h4 style={{ fontWeight: 700, fontSize: '0.9rem' }}>Saved Custom Templates</h4>
-              {certTemplates.map((t: any) => (
-                <div key={t.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px' }}>
-                  <div>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>{t.courses?.title || t.course_id}</h4>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t.template_name} • Signatory: {t.signatory_name}</p>
-                  </div>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '4px', backgroundColor: t.primary_color }} title={t.primary_color}></div>
-                </div>
-              ))}
-              {certTemplates.length === 0 && <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No custom templates set yet.</p>}
-            </div>
-          </div>
-        )}
-
-        {/* TEACHER MANAGEMENT TAB */}
-        {activeTab === 'teachers' && role === 'admin' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.25rem', fontWeight: 800 }}>Instructor Management</h3>
-            </div>
-            <div className="card" style={{ padding: '24px' }}>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '16px' }}>
-                Use the Student Management tab to promote existing users to 'teacher'. This suite allows you to oversee instructor assignments.
-              </p>
-              <div style={{ padding: '16px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '12px' }}>
-                <strong style={{ color: 'var(--color-blue)' }}>System Note:</strong> 
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px' }}>Instructor granular batch assignments are handled automatically via their associated courses. Instructors can see all batches for courses they have access to.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ENTERPRISE TAB */}
-        {activeTab === 'enterprise' && role === 'admin' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.25rem', fontWeight: 800 }}>Enterprise Settings</h3>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-              
-              <div className="card" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#10B981' }}>
-                  <Key size={18} />
-                  <strong style={{ fontSize: '1.1rem' }}>API Integration</strong>
-                </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '16px' }}>
-                  Generate API keys to integrate CODEME Academy with your HR or internal systems.
-                </p>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input type="text" className="input-field" readOnly value="cdm_live_x892jklms..." style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.8rem', opacity: 0.7 }} />
-                  <button className="btn btn-secondary" style={{ padding: '8px 12px' }}>Regenerate</button>
-                </div>
-              </div>
-
-              <div className="card" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--color-purple)' }}>
-                  <BookOpen size={18} />
-                  <strong style={{ fontSize: '1.1rem' }}>White-Label Options</strong>
-                </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '16px' }}>
-                  Customise the platform's appearance for enterprise clients.
-                </p>
-                <button className="btn btn-secondary" style={{ width: '100%' }}>Configure Branding (Locked)</button>
-              </div>
-
-              <div className="card" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--color-danger)' }}>
-                  <ShieldAlert size={18} />
-                  <strong style={{ fontSize: '1.1rem' }}>Security & Rate Limits</strong>
-                </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '16px' }}>
-                  Strict rate-limiting is currently active (5 attempts / 15 mins).
-                </p>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  <input type="checkbox" checked readOnly /> Enforce 2FA for Instructors
-                </label>
-              </div>
-
-              <div className="card" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--color-blue)' }}>
-                  <BarChart2 size={18} />
-                  <strong style={{ fontSize: '1.1rem' }}>Enterprise Reporting</strong>
-                </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '16px' }}>
-                  Export full compliance and progress reports.
-                </p>
-                <button className="btn btn-primary" style={{ width: '100%' }}>Export CSV Report</button>
-              </div>
-
-            </div>
-          </div>
-        )}
-
+        </div>
       </div>
     </div>
-  )
-}
+    {showAIAssistant && (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0,0,0,0.5)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px'
+      }}>
+        <div style={{
+          background: 'var(--bg-secondary)',
+          width: '100%',
+          maxWidth: '600px',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          position: 'relative'
+        }}>
+          <button
+            onClick={() => setShowAIAssistant(false)}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              zIndex: 10
+            }}
+          >
+            <XCircle size={20} />
+          </button>
+          <AIChatInterface mode="generate" contextType="Admin Assistant" height="600px" />
+        </div>
+      </div>
+    )}
+    </>
+  );
+};

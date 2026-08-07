@@ -56,3 +56,11 @@ class AISettingsResponse(BaseModel):
 class AISettingsUpdate(BaseModel):
     daily_limit: int
     review_daily_limit: int
+
+class AIGenerateRequest(BaseModel):
+    prompt: str
+    context_type: str  # e.g., 'quiz', 'announcement', 'lesson_outline'
+    context_data: Optional[str] = None
+
+class AIGenerateResponse(BaseModel):
+    result: str

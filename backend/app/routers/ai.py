@@ -13,6 +13,8 @@ from app.schemas.ai import (
     AIConfirmReviewRequest,
     AISettingsResponse,
     AISettingsUpdate,
+    AIGenerateRequest,
+    AIGenerateResponse,
 )
 from app.services.ai_service import (
     ask_tutor,
@@ -22,6 +24,7 @@ from app.services.ai_service import (
     get_pending_reviews,
     get_ai_settings,
     update_ai_settings,
+    generate_content,
 )
 
 router = APIRouter()
@@ -117,3 +120,19 @@ async def ai_update_settings(
 ):
     """Admin-adjustable AI daily caps (chat + review generation)."""
     return await update_ai_settings(db, data)
+
+@router.post("/ai/generate", response_model=AIGenerateResponse)
+async def ai_generate_content(
+    data: AIGenerateRequest,
+    user_data: Dict[str, Any] = Depends(require_teacher_or_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate content for teachers/admins based on context type."""
+    try:
+        result = await generate_content(db, data.prompt, data.context_type, data.context_data)
+        return AIGenerateResponse(result=result)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )

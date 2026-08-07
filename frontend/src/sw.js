@@ -1,68 +1,106 @@
 // CODEME Academy Service Worker (injectManifest)
-// Bundled by vite-plugin-pwa (strategies: 'injectManifest').
-// Provides: Workbox precaching (app shell + hashed assets), network-only for
-// API/media hosts, SPA navigation fallback, and Web Push notification handling.
+// Bundled by vite-plugin-pwa (strategies: "injectManifest").
+// Provides: Workbox precaching (app shell + hashed assets), NetworkFirst for safe API, NetworkOnly for sensitive routes, and Web Push notifications.
 
-import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching'
-import { registerRoute, NavigationRoute } from 'workbox-routing'
-import { NetworkOnly } from 'workbox-strategies'
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from "workbox-precaching"
+import { registerRoute, NavigationRoute } from "workbox-routing"
+import { NetworkOnly, NetworkFirst, StaleWhileRevalidate } from "workbox-strategies"
+import { ExpirationPlugin } from "workbox-expiration"
 
 cleanupOutdatedCaches()
 // The precache manifest (with revision hashes) is injected by the build.
 precacheAndRoute(self.__WB_MANIFEST)
 
-// Network-only resources (always require connection)
-const NETWORK_ONLY_PATTERNS = [
-  /supabase\.co/,       // All API calls
-  /youtube\.com/,        // Video content
-  /meet\.google\.com/,   // Live classes
-  /zoom\.us/,            // Live classes
+// Safe API GET Routes (Read-only offline access)
+const SAFE_API_PATTERNS = [
+  /\/api\/courses(\/.*)?$/,
+  /\/api\/lessons(\/.*)?$/,
+  /\/api\/profile/,
+  /\/api\/announcements/
 ]
 
 registerRoute(
-  ({ url }) => NETWORK_ONLY_PATTERNS.some((pattern) => pattern.test(url.href)),
+  ({ url, request }) => request.method === "GET" && SAFE_API_PATTERNS.some((pattern) => pattern.test(url.pathname)),
+  new NetworkFirst({
+    cacheName: "safe-api-cache",
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 50,
+        maxAgeSeconds: 7 * 24 * 60 * 60, // 7 Days
+      })
+    ]
+  })
+)
+
+// Network-only resources (always require connection)
+const NETWORK_ONLY_PATTERNS = [
+  /\/api\/payments/,
+  /\/api\/ai/,
+  /\/api\/admin/,
+  /\/api\/auth/,
+  /youtube\.com/,
+  /meet\.google\.com/,
+  /zoom\.us/
+]
+
+registerRoute(
+  ({ url, request }) => request.method !== "GET" || NETWORK_ONLY_PATTERNS.some((pattern) => pattern.test(url.href)),
   new NetworkOnly()
 )
 
-// SPA navigation fallback to the precached index.html
-registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html')))
+// Asset caching (fonts, external images)
+registerRoute(
+  ({ request }) => request.destination === "image" || request.destination === "font",
+  new StaleWhileRevalidate({
+    cacheName: "assets-cache",
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 100,
+        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+      })
+    ]
+  })
+)
 
-// ──────────────── Install / Activate ────────────────
-self.addEventListener('install', () => {
+// SPA navigation fallback to the precached index.html
+registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")))
+
+// ---------------- Install / Activate ----------------
+self.addEventListener("install", () => {
   self.skipWaiting()
 })
 
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim())
 })
 
-// ──────────────── Push Notifications ────────────────
-self.addEventListener('push', (event) => {
+// ---------------- Push Notifications ----------------
+self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {}
   const options = {
-    body: data.body || 'You have a new notification from CodeMe Academy',
-    icon: '/codeme.jpg',
-    badge: '/codeme.jpg',
-    tag: data.tag || 'codeme-notification',
-    data: { url: data.url || '/' },
+    body: data.body || "You have a new notification from CodeMe Academy",
+    icon: "/codeme.jpg",
+    badge: "/codeme.jpg",
+    tag: data.tag || "codeme-notification",
+    data: { url: data.url || "/" },
     requireInteraction: data.requireInteraction || false,
     vibrate: [200, 100, 200],
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || 'CodeMe Academy', options)
+    self.registration.showNotification(data.title || "CodeMe Academy", options)
   )
 })
 
-// ──────────────── Notification Click ────────────────
-self.addEventListener('notificationclick', (event) => {
+// ---------------- Notification Click ----------------
+self.addEventListener("notificationclick", (event) => {
   event.notification.close()
-  const targetUrl = event.notification.data?.url || '/'
+  const targetUrl = event.notification.data?.url || "/"
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
-        if ('focus' in client) {
+        if ("focus" in client) {
           client.focus()
-          if (client.url !== targetUrl && 'navigate' in client) {
+          if (client.url !== targetUrl && "navigate" in client) {
             return client.navigate(targetUrl)
           }
           return
@@ -75,9 +113,9 @@ self.addEventListener('notificationclick', (event) => {
   )
 })
 
-// ──────────────── Background Sync (offline progress) ────────────────
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-progress') {
+// ---------------- Background Sync (offline progress) ----------------
+self.addEventListener("sync", (event) => {
+  if (event.tag === "sync-progress") {
     event.waitUntil(syncOfflineProgress())
   }
 })
@@ -85,27 +123,29 @@ self.addEventListener('sync', (event) => {
 async function syncOfflineProgress() {
   try {
     const db = await openOfflineDB()
-    const pending = await db.getAll('pending-progress')
+    const pending = await db.getAll("pending-progress")
     for (const item of pending) {
-      await fetch('/api/sync-progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      // Basic implementation; in real world, this logic matches your backend POST shapes
+      await fetch("/api/sync-progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item),
       })
-      await db.delete('pending-progress', item.id)
+      await db.delete("pending-progress", item.id)
     }
   } catch (e) {
-    console.error('[SW] Background sync failed:', e)
+    console.error("[SW] Background sync failed:", e)
   }
 }
 
 function openOfflineDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('codeme-offline', 1)
+    const req = indexedDB.open("codeme-offline", 1)
     req.onupgradeneeded = (e) => {
-      e.target.result.createObjectStore('pending-progress', { keyPath: 'id' })
+      e.target.result.createObjectStore("pending-progress", { keyPath: "id" })
     }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => reject(req.error)
   })
 }
+

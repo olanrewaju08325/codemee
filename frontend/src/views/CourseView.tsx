@@ -1,404 +1,375 @@
-import React, { useState, useEffect } from 'react'
-import apiClient from '../apiClient'
-import { motion } from 'framer-motion'
-import { ChevronLeft, Check, Lock, PlayCircle, FileText, HelpCircle, Trophy } from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ChevronLeft, CheckCircle, Circle, LayoutPanelLeft, 
+  PanelRight, Bookmark, StickyNote, Sparkles, Loader2
+} from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import apiClient from '../apiClient';
+import { Button } from '../components/ui/Button';
 
 interface CourseViewProps {
-  session: any
-  selectedCourseId: string
-  onNavigate: (view: string) => void
-  setSelectedLessonId: (id: string) => void
-  setSelectedQuizId: (id: string) => void
-  onSelectCertificate: () => void
+  session: any;
+  selectedCourseId: string;
+  onNavigate: (view: string) => void;
 }
 
 export const CourseView: React.FC<CourseViewProps> = ({ 
-  session, 
-  selectedCourseId,
-  onNavigate, 
-  setSelectedLessonId, 
-  setSelectedQuizId,
-  onSelectCertificate
+  session, selectedCourseId, onNavigate
 }) => {
-  const [modules, setModules] = useState<any[]>([])
-  const [lessons, setLessons] = useState<any[]>([])
-  const [progress, setProgress] = useState<any[]>([])
-  const [submissions, setSubmissions] = useState<any[]>([])
-  const [attempts, setAttempts] = useState<any[]>([])
-  const [quizzes, setQuizzes] = useState<any[]>([])
-  const [assignments, setAssignments] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [modules, setModules] = useState<any[]>([]);
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [progress, setProgress] = useState<any[]>([]);
+  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+  const [activeLesson, setActiveLesson] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [lessonLoading, setLessonLoading] = useState(false);
+  
+  // Layout states
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(false);
+  const [activeRightTab, setActiveRightTab] = useState<'ai' | 'notes' | 'bookmarks'>('notes');
+  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
 
-  const fetchData = async () => {
-    try {
-      // 1. Fetch modules for the selected course via API
-      const modulesList = await apiClient.courses.getCourseModules(selectedCourseId)
-      setModules(modulesList)
-
-      if (modulesList.length > 0) {
-        const moduleIds: string[] = modulesList.map((m: { id: string }) => m.id)
-
-        // 2. Fetch lessons via API
-        const lessonsData = await Promise.all(
-          moduleIds.map(moduleId => apiClient.courses.getModuleLessons(moduleId))
-        )
-        setLessons(lessonsData.flat())
-
-        // 3. Fetch quizzes via API
-        const quizzesData = await Promise.all(
-          moduleIds.map(moduleId => apiClient.courses.getModuleQuizzes(moduleId))
-        )
-        setQuizzes(quizzesData.flat())
-
-        // 4. Fetch assignments via API
-        const assignmentsData = await Promise.all(
-          moduleIds.map(moduleId => apiClient.courses.getModuleAssignments(moduleId))
-        )
-        setAssignments(assignmentsData.flat())
-      }
-
-      // 5. Fetch progress via API
-      const progressData = await apiClient.courses.getProgress()
-      setProgress(progressData)
-
-      // 6. Fetch assignment submissions via API
-      const subData = await apiClient.courses.getAssignmentSubmissions()
-      setSubmissions(subData)
-
-      // 7. Fetch quiz attempts via API
-      const attemptData = await apiClient.courses.getQuizAttempts()
-      setAttempts(attemptData)
-
-    } catch (err) {
-      console.error('Error fetching course view data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Local storage states
+  const [notes, setNotes] = useState<string>('');
+  const [bookmarks, setBookmarks] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchData()
-  }, [session, selectedCourseId])
+    // Load local storage data
+    const savedNotes = localStorage.getItem(`codeme_notes_${selectedCourseId}`);
+    if (savedNotes) setNotes(savedNotes);
+    
+    const savedBookmarks = localStorage.getItem(`codeme_bookmarks_${selectedCourseId}`);
+    if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [modulesList, progressData] = await Promise.all([
+          apiClient.courses.getCourseModules(selectedCourseId),
+          apiClient.courses.getProgress()
+        ]);
+        setModules(modulesList);
+        setProgress(progressData);
+
+        if (modulesList.length > 0) {
+          const moduleIds = modulesList.map((m: any) => m.id);
+          const lessonsData = await Promise.all(
+            moduleIds.map((id: string) => apiClient.courses.getModuleLessons(id))
+          );
+          const allLessons = lessonsData.flat();
+          setLessons(allLessons);
+
+          // Determine starting lesson (from local storage or first uncompleted)
+          const lastViewed = localStorage.getItem(`codeme_last_lesson_${selectedCourseId}`);
+          if (lastViewed && allLessons.some(l => l.id === lastViewed)) {
+            setActiveLessonId(lastViewed);
+          } else {
+            const firstUncompleted = allLessons.find(l => !progressData.some((p: any) => p.lesson_id === l.id));
+            setActiveLessonId(firstUncompleted?.id || allLessons[0]?.id);
+          }
+
+          // Expand the module of the active lesson
+          const initialExpanded: Record<string, boolean> = {};
+          modulesList.forEach((m: any) => {
+            initialExpanded[m.id] = true;
+          });
+          setExpandedModules(initialExpanded);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [selectedCourseId, session]);
+
+  useEffect(() => {
+    const fetchLessonDetail = async () => {
+      if (!activeLessonId) return;
+      try {
+        setLessonLoading(true);
+        const detail = await apiClient.courses.getLesson(activeLessonId);
+        setActiveLesson(detail);
+        localStorage.setItem(`codeme_last_lesson_${selectedCourseId}`, activeLessonId);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLessonLoading(false);
+      }
+    };
+    fetchLessonDetail();
+  }, [activeLessonId, selectedCourseId]);
+
+  const saveNotes = (val: string) => {
+    setNotes(val);
+    localStorage.setItem(`codeme_notes_${selectedCourseId}`, val);
+  };
+
+  const toggleBookmark = () => {
+    if (!activeLessonId) return;
+    let newBookmarks = [...bookmarks];
+    if (newBookmarks.includes(activeLessonId)) {
+      newBookmarks = newBookmarks.filter(id => id !== activeLessonId);
+    } else {
+      newBookmarks.push(activeLessonId);
+    }
+    setBookmarks(newBookmarks);
+    localStorage.setItem(`codeme_bookmarks_${selectedCourseId}`, JSON.stringify(newBookmarks));
+  };
+
+  const markComplete = async () => {
+    if (!activeLessonId) return;
+    try {
+      await apiClient.courses.markLessonComplete(activeLessonId);
+      setProgress([...progress, { lesson_id: activeLessonId }]);
+      // Go to next lesson
+      const currentIndex = lessons.findIndex(l => l.id === activeLessonId);
+      if (currentIndex < lessons.length - 1) {
+        setActiveLessonId(lessons[currentIndex + 1].id);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const isCompleted = (id: string) => progress.some(p => p.lesson_id === id);
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-        <p>Loading course content...</p>
-      </div>
-    )
+    return <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" /></div>;
   }
-
-  // Helper check if lesson is read
-  const isLessonCompleted = (lessonId: string) => {
-    return progress.some(p => p.lesson_id === lessonId)
-  }
-
-  // Helper check assignment status
-  const getAssignmentStatus = (moduleId: string) => {
-    const assign = assignments.find(a => a.module_id === moduleId)
-    if (!assign) return 'not_submitted'
-    const sub = submissions.find(s => s.assignment_id === assign.id)
-    return sub ? sub.status : 'not_submitted'
-  }
-
-  // Calculate certificate availability
-  // Certificate unlocked if all 6 quizzes have a passing attempt
-  // Check if at least one passed attempt exists for each quiz in all 6 modules
-  const quizPassedCount = modules.filter(m => {
-    const moduleQuiz = quizzes.find(q => q.module_id === m.id)
-    if (!moduleQuiz) return false
-    return attempts.some(a => a.quiz_id === moduleQuiz.id && a.passed)
-  }).length
-
-  const allPassed = quizPassedCount === 6
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08
-      }
-    }
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
-  } as const
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header bar */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          padding: '16px',
-          backgroundColor: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border-color)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          gap: '12px'
-        }}
-      >
-        <button 
-          onClick={() => onNavigate('dashboard')} 
-          style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>WD101 Syllabus Map</h4>
-      </div>
-
-      <div className="app-content">
-        {/* Certificate Unlocked Banner */}
-        {allPassed ? (
-          <div 
-            className="card animate-pulse"
+    <div style={{ display: 'flex', height: 'calc(100vh - 64px)', overflow: 'hidden', backgroundColor: 'var(--bg-primary)' }}>
+      
+      {/* Left Sidebar (Navigation) */}
+      <AnimatePresence>
+        {leftOpen && (
+          <motion.div 
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 300, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
             style={{ 
-              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', 
-              color: '#FFFFFF',
-              border: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              alignItems: 'center',
-              textAlign: 'center'
+              borderRight: '1px solid var(--border-default)', 
+              backgroundColor: 'var(--bg-secondary)',
+              display: 'flex', flexDirection: 'column',
+              flexShrink: 0, overflow: 'hidden'
             }}
           >
-            <Trophy size={40} />
-            <div>
-              <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 800 }}>Frontend Certificate Earned!</h3>
-              <p style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '4px' }}>
-                You have passed all 6 module examinations. Claim your official credentials now.
-              </p>
+            <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <button onClick={() => onNavigate(`courses/${selectedCourseId}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
+                <ChevronLeft size={20} />
+              </button>
+              <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Course Curriculum</h3>
             </div>
-            <button 
-              className="btn" 
-              onClick={onSelectCertificate}
-              style={{ backgroundColor: '#FFFFFF', color: '#059669', padding: '10px', fontSize: '0.85rem' }}
-            >
-              Generate Certificate PDF
+            
+            <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-4)' }}>
+              {modules.map((m, idx) => {
+                const modLessons = lessons.filter(l => l.module_id === m.id);
+                const isExpanded = expandedModules[m.id];
+                
+                return (
+                  <div key={m.id} style={{ marginBottom: 'var(--space-4)' }}>
+                    <div 
+                      onClick={() => setExpandedModules({...expandedModules, [m.id]: !isExpanded})}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: 'var(--space-2)' }}
+                    >
+                      <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)' }}>Module {idx + 1}: {m.title}</h4>
+                    </div>
+                    
+                    {isExpanded && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {modLessons.map((l: any) => {
+                          const isActive = activeLessonId === l.id;
+                          const completed = isCompleted(l.id);
+                          return (
+                            <div 
+                              key={l.id}
+                              onClick={() => setActiveLessonId(l.id)}
+                              style={{ 
+                                display: 'flex', alignItems: 'center', gap: 'var(--space-3)', 
+                                padding: 'var(--space-2) var(--space-3)',
+                                borderRadius: 'var(--radius-md)',
+                                backgroundColor: isActive ? 'var(--color-blue)' : 'transparent',
+                                color: isActive ? 'white' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {completed ? <CheckCircle size={16} color={isActive ? 'white' : '#10B981'} /> : <Circle size={16} />}
+                              <span style={{ fontSize: 'var(--text-sm)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content Area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+        
+        {/* Top bar */}
+        <div style={{ 
+          height: '60px', borderBottom: '1px solid var(--border-default)', 
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 var(--space-4)', backgroundColor: 'var(--bg-primary)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+            <button onClick={() => setLeftOpen(!leftOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+              <LayoutPanelLeft size={20} />
+            </button>
+            <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--weight-bold)' }}>
+              {activeLesson?.title || 'Loading...'}
+            </h2>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <Button variant="outline" size="sm" onClick={toggleBookmark} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: bookmarks.includes(activeLessonId || '') ? 'var(--color-blue)' : 'var(--text-secondary)' }}>
+              <Bookmark size={16} /> <span className="hidden-mobile">Bookmark</span>
+            </Button>
+            <button onClick={() => setRightOpen(!rightOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '8px' }}>
+              <PanelRight size={20} />
             </button>
           </div>
-        ) : (
-          <div className="card" style={{ backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
-            <Trophy size={28} style={{ color: quizPassedCount > 0 ? 'var(--color-purple)' : 'var(--text-tertiary)' }} />
-            <div style={{ flex: 1 }}>
-              <h4 style={{ fontSize: '0.85rem' }}>Digital Certificate Progress</h4>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Pass all 6 quizzes: {quizPassedCount}/6 passed</p>
-            </div>
-            <div className="progress-container" style={{ width: '80px', height: '6px' }}>
-              <div className="progress-bar-fill" style={{ width: `${Math.round((quizPassedCount / 6) * 100)}%` }}></div>
-            </div>
-          </div>
-        )}
+        </div>
 
-        {/* Modules List */}
-        <motion.div 
-          style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-        >
-          {modules.map((m, idx) => {
-            const moduleLessons = lessons.filter(l => l.module_id === m.id)
-            const moduleQuiz = quizzes.find(q => q.module_id === m.id)
-            const quizAttempt = moduleQuiz ? attempts.filter(a => a.quiz_id === moduleQuiz.id) : []
-            const isQuizPassed = quizAttempt.some(a => a.passed)
-            
-            // Check if previous module is passed to implement sequence lock
-            // The first module is always unlocked. Subsequent modules require previous module's quiz to be passed.
-            const isUnlocked = idx === 0 || (() => {
-              const prevModule = modules[idx - 1]
-              const prevQuiz = quizzes.find(q => q.module_id === prevModule.id)
-              return prevQuiz ? attempts.some(a => a.quiz_id === prevQuiz.id && a.passed) : false
-            })()
-
-            return (
-              <motion.div 
-                key={m.id} 
-                className="card" 
-                variants={itemVariants}
-                style={{ 
-                  opacity: isUnlocked ? 1 : 0.65,
-                  pointerEvents: isUnlocked ? 'auto' : 'none',
-                  borderColor: isUnlocked ? 'var(--border-color)' : 'transparent',
-                  backgroundColor: isUnlocked ? 'var(--bg-secondary)' : '#E5E7EB'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--color-blue)', fontWeight: 700, textTransform: 'uppercase' }}>Module {m.order_index}</span>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{m.title}</h3>
+        {/* Content Viewer */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: '800px', paddingBottom: '100px' }}>
+            {lessonLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '100px' }}><Loader2 className="animate-spin" size={32} color="var(--color-blue)" /></div>
+            ) : activeLesson ? (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                
+                {/* Embedded Video (if any) */}
+                {activeLesson.video_url && (
+                  <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: 'black', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-6)', overflow: 'hidden' }}>
+                    <iframe 
+                      src={activeLesson.video_url} 
+                      style={{ width: '100%', height: '100%', border: 'none' }}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
                   </div>
-                  {!isUnlocked ? (
-                    <Lock size={18} style={{ color: 'var(--text-tertiary)' }} />
-                  ) : isQuizPassed ? (
-                    <div style={{ backgroundColor: 'var(--color-success)', color: '#FFFFFF', borderRadius: '50%', padding: '4px' }}>
-                      <Check size={14} />
-                    </div>
-                  ) : null}
+                )}
+
+                <div className="markdown-body" style={{ color: 'var(--text-primary)', lineHeight: 1.6 }}>
+                  <ReactMarkdown>{activeLesson.content || 'No content provided for this lesson.'}</ReactMarkdown>
                 </div>
+                
+                {/* Actions at bottom */}
+                <div style={{ marginTop: 'var(--space-8)', paddingTop: 'var(--space-6)', borderTop: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Button variant="outline" onClick={() => {
+                    const currentIndex = lessons.findIndex(l => l.id === activeLessonId);
+                    if (currentIndex > 0) setActiveLessonId(lessons[currentIndex - 1].id);
+                  }} disabled={lessons.findIndex(l => l.id === activeLessonId) <= 0}>
+                    Previous
+                  </Button>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {/* Lessons */}
-                  {moduleLessons.map(l => {
-                    const completed = isLessonCompleted(l.id)
-                    return (
-                      <div 
-                        key={l.id} 
-                        onClick={() => {
-                          setSelectedLessonId(l.id)
-                          onNavigate('lesson')
-                        }}
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '12px', 
-                          padding: '10px', 
-                          borderRadius: '8px', 
-                          backgroundColor: 'var(--bg-primary)', 
-                          cursor: 'pointer',
-                          border: '1px solid transparent'
-                        }}
-                        className="lesson-row"
-                      >
-                        {completed ? (
-                          <Check size={18} style={{ color: 'var(--color-success)' }} />
-                        ) : (
-                          <PlayCircle size={18} style={{ color: 'var(--color-blue)' }} />
-                        )}
-                        <div style={{ flex: 1 }}>
-                          <h5 style={{ fontSize: '0.85rem', fontWeight: 600 }}>{l.title}</h5>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Lesson {l.order_index} • Ready to Read</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-
-                  {/* Assignment submission status */}
-                  {isUnlocked && (() => {
-                    const assign = assignments.find(a => a.module_id === m.id)
-                    const status = getAssignmentStatus(m.id)
-                    return (
-                      <div 
-                        onClick={() => {
-                          if (assign) {
-                            setSelectedLessonId(moduleLessons[0]?.id || '') // Redir to lesson to submit
-                            onNavigate('lesson')
-                          }
-                        }}
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '12px', 
-                          padding: '10px', 
-                          borderRadius: '8px', 
-                          backgroundColor: 'var(--bg-primary)',
-                          border: '1px dashed var(--border-color)',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <FileText size={18} style={{ color: 'var(--color-purple)' }} />
-                        <div style={{ flex: 1 }}>
-                          <h5 style={{ fontSize: '0.85rem', fontWeight: 600 }}>Module {m.order_index} Assignment</h5>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                            Status: {status === 'approved' ? 'Approved (Graded)' : status === 'rejected' ? 'Rejected (Resubmit)' : status === 'pending' ? 'Pending Review' : 'Not submitted'}
-                          </span>
-                        </div>
-                        {status === 'approved' && <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Approved</span>}
-                        {status === 'rejected' && <span className="badge badge-danger" style={{ fontSize: '0.65rem' }}>Rejected</span>}
-                        {status === 'pending' && <span className="badge badge-blue" style={{ fontSize: '0.65rem' }}>Pending</span>}
-                      </div>
-                    )
-                  })()}
-
-                  {/* Quiz */}
-                  {moduleQuiz && isUnlocked && (
-                    <div 
-                      onClick={() => {
-                        setSelectedQuizId(moduleQuiz.id)
-                        onNavigate('quiz')
-                      }}
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '12px', 
-                        padding: '10px', 
-                        borderRadius: '8px', 
-                        backgroundColor: isQuizPassed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 47, 166, 0.08)', 
-                        cursor: 'pointer',
-                        border: isQuizPassed ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid transparent'
-                      }}
-                    >
-                      <HelpCircle size={18} style={{ color: isQuizPassed ? 'var(--color-success)' : 'var(--color-purple)' }} />
-                      <div style={{ flex: 1 }}>
-                        <h5 style={{ fontSize: '0.85rem', fontWeight: 600, color: isQuizPassed ? 'var(--color-success)' : 'var(--text-primary)' }}>
-                          {moduleQuiz.title}
-                        </h5>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                          {isQuizPassed 
-                            ? 'Exam Passed Successfully' 
-                            : quizAttempt.length > 0 
-                              ? `Failed (${quizAttempt[quizAttempt.length - 1].score}%) • Tap to Retake` 
-                              : 'Test Locked Until Lessons Complete'}
-                        </span>
-                      </div>
-                      {isQuizPassed && <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Passed</span>}
-                    </div>
-                  )}
-
+                  <Button 
+                    onClick={markComplete}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: isCompleted(activeLessonId!) ? 'var(--bg-secondary)' : 'var(--color-blue)', color: isCompleted(activeLessonId!) ? 'var(--text-primary)' : 'white' }}
+                  >
+                    {isCompleted(activeLessonId!) ? <><CheckCircle size={18} color="#10B981" /> Completed</> : 'Mark Complete'}
+                  </Button>
                 </div>
               </motion.div>
-            )
-          })}
-        </motion.div>
-
-        {/* Locked future curriculums roadmap */}
-        <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginBottom: '4px' }}>
-            Future Curriculums Roadmap
-          </h4>
-          
-          {[
-            { title: 'CSS3: Responsive Web Layouts', track: 'Frontend Path' },
-            { title: 'JavaScript Essentials: Logic & DOM', track: 'Frontend Path' },
-            { title: 'React JS Framework: Single Page Apps', track: 'Frontend Path' },
-            { title: 'Git & GitHub Version Control', track: 'Engineering Basics' },
-            { title: 'Backend Logic with Python & Django', track: 'Backend Path' },
-            { title: 'Full Stack Engineering Capstone', track: 'Full Stack Path' },
-            { title: 'Introduction to Data Analytics & SQL', track: 'Data Path' },
-            { title: 'Data Science & Machine Learning Basics', track: 'Data Path' }
-          ].map((course, idx) => (
-            <div 
-              key={idx} 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between', 
-                padding: '12px 16px', 
-                borderRadius: '12px', 
-                backgroundColor: 'rgba(156, 163, 175, 0.08)', 
-                border: '1px solid var(--border-color)'
-              }}
-            >
-              <div>
-                <h5 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{course.title}</h5>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>{course.track}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(156, 163, 175, 0.15)', padding: '4px 8px', borderRadius: '8px' }}>
-                <Lock size={12} style={{ color: 'var(--text-secondary)' }} />
-                <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Coming Soon</span>
-              </div>
-            </div>
-          ))}
+            ) : (
+              <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '100px' }}>Select a lesson to begin.</div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  )
-}
 
-export default CourseView
+      {/* Right Sidebar (Context Panel) */}
+      <AnimatePresence>
+        {rightOpen && (
+          <motion.div 
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 320, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            style={{ 
+              borderLeft: '1px solid var(--border-default)', 
+              backgroundColor: 'var(--bg-secondary)',
+              display: 'flex', flexDirection: 'column',
+              flexShrink: 0, overflow: 'hidden'
+            }}
+          >
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-default)' }}>
+              {[
+                { id: 'notes', icon: <StickyNote size={16} />, label: 'Notes' },
+                { id: 'bookmarks', icon: <Bookmark size={16} />, label: 'Saved' },
+                { id: 'ai', icon: <Sparkles size={16} />, label: 'AI Tutor' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveRightTab(tab.id as any)}
+                  style={{
+                    flex: 1, padding: '12px 0', border: 'none', background: 'none', cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                    color: activeRightTab === tab.id ? 'var(--color-blue)' : 'var(--text-secondary)',
+                    borderBottom: activeRightTab === tab.id ? '2px solid var(--color-blue)' : '2px solid transparent'
+                  }}
+                >
+                  {tab.icon}
+                  <span style={{ fontSize: '10px', fontWeight: 'var(--weight-bold)', textTransform: 'uppercase' }}>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ flex: 1, padding: 'var(--space-4)', overflowY: 'auto' }}>
+              {activeRightTab === 'notes' && (
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)' }}>Personal Notes</h4>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>These notes are saved automatically to your device.</p>
+                  <textarea 
+                    value={notes}
+                    onChange={(e) => saveNotes(e.target.value)}
+                    placeholder="Type your notes here..."
+                    style={{ flex: 1, width: '100%', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', resize: 'none', outline: 'none', fontSize: 'var(--text-sm)', fontFamily: 'inherit' }}
+                  />
+                </div>
+              )}
+
+              {activeRightTab === 'bookmarks' && (
+                <div>
+                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-4)' }}>Bookmarked Lessons</h4>
+                  {bookmarks.length === 0 ? (
+                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>No bookmarks yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                      {bookmarks.map(id => {
+                        const l = lessons.find(lx => lx.id === id);
+                        if (!l) return null;
+                        return (
+                          <div key={id} onClick={() => setActiveLessonId(id)} style={{ padding: 'var(--space-3)', backgroundColor: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', cursor: 'pointer', border: '1px solid var(--border-default)' }}>
+                            <h5 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', marginBottom: '4px' }}>{l.title}</h5>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeRightTab === 'ai' && (
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  <Sparkles size={32} style={{ marginBottom: '16px' }} />
+                  <p style={{ fontSize: 'var(--text-sm)' }}>AI Tutor integration is active in the main dashboard.<br/>(Lesson context AI coming in Phase 5)</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};

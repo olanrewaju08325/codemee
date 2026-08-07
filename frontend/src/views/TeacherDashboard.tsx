@@ -3,9 +3,10 @@ import { supabase } from '../supabaseClient'
 import apiClient from '../apiClient'
 import {
   BookOpen, Users, Bell, CheckSquare, PenTool, Loader2,
-  Video, Send, BarChart2, GraduationCap, Plus, Eye, Clock, Upload, Trash2, Zap
+  Video, Send, BarChart2, GraduationCap, Plus, Eye, Clock, Upload, Trash2, Zap, XCircle
 } from 'lucide-react'
 import { ContentManager } from './ContentManager'
+import { AIChatInterface } from '../components/ui/AIChatInterface'
 
 interface TeacherDashboardProps {
   session: any
@@ -20,6 +21,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ session }) =
   const [activeTab, setActiveTab] = useState<'overview' | 'gradebook' | 'content' | 'announcements' | 'recordings' | 'roster'>('overview')
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [showAIAssistant, setShowAIAssistant] = useState(false)
 
   // Gradebook state
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null)
@@ -246,17 +248,69 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ session }) =
     <div className="full-screen-view" style={{ paddingBottom: '80px' }}>
       {/* Header */}
       <div className="gradient-card" style={{ padding: '20px', marginBottom: '16px', borderRadius: '16px', background: 'linear-gradient(135deg, #1b1030, #0c0a1e)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #8B5CF6, #6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <GraduationCap size={24} color="#fff" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #8B5CF6, #6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GraduationCap size={24} color="#fff" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>Teacher Panel</h2>
+              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>
+                {profile?.full_name} · {profile?.student_id || 'Instructor'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>Teacher Panel</h2>
-            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>
-              {profile?.full_name} · {profile?.student_id || 'Instructor'}
-            </p>
-          </div>
+          <button 
+            onClick={() => setShowAIAssistant(true)}
+            className="btn btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Zap size={16} />
+            AI Assistant
+          </button>
         </div>
+
+        {showAIAssistant && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}>
+            <div style={{
+              background: '#1b1030',
+              width: '100%',
+              maxWidth: '600px',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              position: 'relative'
+            }}>
+              <button
+                onClick={() => setShowAIAssistant(false)}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  zIndex: 10
+                }}
+              >
+                <XCircle size={20} />
+              </button>
+              <AIChatInterface mode="generate" contextType="Teacher Assistant" height="600px" />
+            </div>
+          </div>
+        )}
 
         {/* Stats Row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '16px' }}>

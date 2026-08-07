@@ -26,13 +26,28 @@ async def submit_payment(
     Submit an exam retake payment receipt.
     Replaces: QuizView.tsx lines 182-191
     """
+    # Security Hardening: Validate file extension
+    valid_extensions = ('.jpg', '.jpeg', '.png', '.pdf')
+    if not payment_data.receipt_file_path.lower().endswith(valid_extensions):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Only JPG, PNG, and PDF receipts are allowed."
+        )
+
+    # Security Hardening: Protect against path traversal
+    if '..' in payment_data.receipt_file_path or payment_data.receipt_file_path.startswith('/'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file path."
+        )
+
     payment = await create_payment(db, payment_data, user_data["user_id"])
     await trigger_payment_submitted(db, user_data["user_id"], payment_data.quiz_id, payment.id)
     return payment
 
 @router.get("/payments/my", response_model=List[PaymentResponse])
 async def get_my_payments(
-    quiz_id: str,
+    quiz_id: str = None,
     user_data: Dict[str, Any] = Depends(require_student),
     db: AsyncSession = Depends(get_db)
 ):

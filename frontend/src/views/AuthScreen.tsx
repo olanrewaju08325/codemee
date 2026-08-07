@@ -8,13 +8,14 @@ interface AuthScreenProps {
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
-  const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
   const [consent, setConsent] = useState(false)
   const [ageConfirm, setAgeConfirm] = useState(false)
+  const [view, setView] = useState<'signin' | 'signup' | 'forgot'>('signin')
   
   const logoRef = useRef<HTMLImageElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
@@ -31,15 +32,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
         { opacity: 1, y: 0, duration: 0.6, stagger: 0.15, delay: 0.4, ease: 'power2.out' }
       )
     }
-  }, [isSignUp])
+  }, [view])
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setMessage(null)
 
     try {
-      if (isSignUp) {
+      if (view === 'signup') {
         if (password.length < 6) {
           setError('Password must be at least 6 characters long.')
           setLoading(false)
@@ -70,9 +72,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
         if (data.session) {
           onAuthSuccess(data.session)
         } else {
-          setError("Account created! Please check your email for the confirmation link, or log in if auto-confirm is enabled.")
+          setMessage("Account created! Please check your email for the confirmation link.")
         }
-      } else {
+      } else if (view === 'signin') {
         // Sign In
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -82,6 +84,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
         if (data.session) {
           onAuthSuccess(data.session)
         }
+      } else if (view === 'forgot') {
+        // Forgot Password
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/#/reset-password`,
+        });
+        if (resetError) throw resetError
+        setMessage("Password reset instructions have been sent to your email.");
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication')
@@ -100,10 +109,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           className="splash-logo" 
         />
         <h2 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.75rem', fontWeight: 800, marginTop: '16px' }} className="gradient-text">
-          {isSignUp ? 'Join CodeMe' : 'Welcome Back'}
+          {view === 'signup' ? 'Join CodeMe' : view === 'signin' ? 'Welcome Back' : 'Reset Password'}
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', textAlign: 'center' }}>
-          {isSignUp ? 'Start your tech journey in Nigeria' : 'Sign in to access your dashboard'}
+          {view === 'signup' ? 'Start your tech journey in Nigeria' : view === 'signin' ? 'Sign in to access your dashboard' : 'Enter your email to receive reset instructions'}
         </p>
       </div>
 
@@ -121,6 +130,22 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
             }}
           >
             {error}
+          </div>
+        )}
+
+        {message && (
+          <div 
+            style={{ 
+              backgroundColor: 'rgba(34, 197, 94, 0.15)', 
+              color: '#86efac', 
+              padding: '12px 16px', 
+              borderRadius: '12px', 
+              fontSize: '0.85rem', 
+              marginBottom: '16px',
+              border: '1px solid rgba(34, 197, 94, 0.3)'
+            }}
+          >
+            {message}
           </div>
         )}
 
@@ -151,46 +176,47 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">PASSWORD</label>
-            <div style={{ position: 'relative' }}>
-              <Lock 
-                size={18} 
-                style={{ 
-                  position: 'absolute', 
-                  left: '14px', 
-                  top: '50%', 
-                  transform: 'translateY(-50%)', 
-                  color: 'var(--text-tertiary)' 
-                }} 
-              />
-              <input 
-                id="password"
-                type="password" 
-                className="input-field" 
-                placeholder="••••••••" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                style={{ paddingLeft: '44px' }}
-              />
-            </div>
-          </div>
-
-          {!isSignUp && (
-            <div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: '8px' }}>
-              <a 
-                href="https://wa.me/2349032517376?text=Hello%20CodeMe%20Admin,%20I%20forgot%20my%20password.%20My%20email%20is:" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                style={{ fontSize: '0.75rem', color: 'var(--color-cyan)', textDecoration: 'none', fontWeight: 600 }}
-              >
-                Forgot Password? Contact Admin
-              </a>
+          {view !== 'forgot' && (
+            <div className="form-group">
+              <label htmlFor="password">PASSWORD</label>
+              <div style={{ position: 'relative' }}>
+                <Lock 
+                  size={18} 
+                  style={{ 
+                    position: 'absolute', 
+                    left: '14px', 
+                    top: '50%', 
+                    transform: 'translateY(-50%)', 
+                    color: 'var(--text-tertiary)' 
+                  }} 
+                />
+                <input 
+                  id="password"
+                  type="password" 
+                  className="input-field" 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  style={{ paddingLeft: '44px' }}
+                />
+              </div>
             </div>
           )}
 
-          {isSignUp && (
+          {view === 'signin' && (
+            <div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: '8px' }}>
+              <button 
+                type="button"
+                onClick={() => setView('forgot')}
+                style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: 'var(--color-cyan)', textDecoration: 'none', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Forgot Password?
+              </button>
+            </div>
+          )}
+
+          {view === 'signup' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '4px 0' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                 <input 
@@ -225,35 +251,52 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           <button 
             type="submit" 
             className="btn btn-primary" 
-            disabled={loading || (isSignUp && (!consent || !ageConfirm))}
+            disabled={loading || (view === 'signup' && (!consent || !ageConfirm))}
             style={{ marginTop: '8px' }}
           >
             {loading ? (
               <Loader2 className="animate-spin" size={20} />
             ) : (
               <>
-                {isSignUp ? 'Create Account' : 'Sign In'}
+                {view === 'signup' ? 'Create Account' : view === 'signin' ? 'Sign In' : 'Send Reset Link'}
                 <ArrowRight size={18} />
               </>
             )}
           </button>
         </form>
 
-        <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <button
-            onClick={() => setIsSignUp(!isSignUp)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-cyan)',
-              fontFamily: 'var(--font-headings)',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              cursor: 'pointer'
-            }}
-          >
-            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Create Account"}
-          </button>
+        <div style={{ marginTop: '24px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {view === 'forgot' ? (
+            <button
+              onClick={() => setView('signin')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-cyan)',
+                fontFamily: 'var(--font-headings)',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer'
+              }}
+            >
+              Back to Sign In
+            </button>
+          ) : (
+            <button
+              onClick={() => setView(view === 'signup' ? 'signin' : 'signup')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-cyan)',
+                fontFamily: 'var(--font-headings)',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer'
+              }}
+            >
+              {view === 'signup' ? 'Already have an account? Sign In' : "Don't have an account? Create Account"}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -35,6 +35,10 @@ class AIProvider(ABC):
     async def draft_submission_review(self, submission_text: str, assignment_title: str) -> Dict[str, Any]:
         """Return a draft review: {feedback, score, is_ai_flagged, passed}."""
 
+    @abstractmethod
+    async def generate_content(self, prompt: str, context_type: str, context_data: Optional[str] = None) -> str:
+        """Generate content for teachers/admins based on context type."""
+
 
 class MockAIProvider(AIProvider):
     """Deterministic local stand-in. Documents the interface and the D1 policy."""
@@ -109,6 +113,9 @@ class MockAIProvider(AIProvider):
             "is_ai_flagged": is_ai_flagged,
             "passed": score >= 66,
         }
+
+    async def generate_content(self, prompt: str, context_type: str, context_data: Optional[str] = None) -> str:
+        return f"Mock generated {context_type}: {prompt}"
 
 
 class GroqAIProvider(AIProvider):
@@ -203,6 +210,20 @@ class GroqAIProvider(AIProvider):
                 "is_ai_flagged": False,
                 "passed": False
             }
+
+    async def generate_content(self, prompt: str, context_type: str, context_data: Optional[str] = None) -> str:
+        system_prompt = (
+            f"You are a helpful academy assistant for CodeMe Academy. Your current task is to help generate content for a {context_type}. "
+            "Provide professional, clear, and high-quality output."
+        )
+        if context_data:
+            system_prompt += f"\nContext information: {context_data}"
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+        return await self._safe_chat_completion(messages)
 
 
 def get_ai_provider(provider_name: Optional[str] = None) -> AIProvider:

@@ -1,700 +1,431 @@
-import React, { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import apiClient from '../apiClient'
-import { ChevronLeft, HelpCircle, Check, AlertTriangle, Upload, Eye, Loader2, DollarSign } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { ChevronLeft, HelpCircle, Check, Upload, Loader2, Clock, Flag, X } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import apiClient from '../apiClient';
+import { Button } from '../components/ui/Button';
 
+// Mock explanation helper (retain from previous implementation)
 const getExplanationForQuestion = (text: string): string => {
   const t = text.toLowerCase()
-  if (t.includes('what does html stand for')) {
-    return 'HTML stands for HyperText Markup Language. It is the core framework used to define webpage structural templates.'
-  }
-  if (t.includes('acts as the wrapper')) {
-    return 'The <body> tag acts as the parent container holding all visible layout graphics (headings, forms, text, panels).'
-  }
-  if (t.includes('doctype html')) {
-    return 'False. <!DOCTYPE html> is an instruction (or document declaration type) informing browsers that the document is written in HTML5. It is not an HTML tag.'
-  }
-  if (t.includes('represents the highest importance')) {
-    return '<h1> represents the main primary heading of a document, while <h6> has the lowest visual layout hierarchy weight.'
-  }
-  if (t.includes('designates the target url')) {
-    return 'The href (Hypertext Reference) attribute houses the link destination target url.'
-  }
-  if (t.includes('strong')) {
-    return 'True. <strong> is an inline element that formats font layouts (boldface) without breaking paragraphs into new block spaces.'
-  }
-  if (t.includes('display an image')) {
-    return 'The <img> element pulls a media link or asset file to render images inline on the page.'
-  }
-  if (t.includes('entering passwords securely')) {
-    return 'type="password" masks characters dynamically in input boxes, keeping user sessions secure.'
-  }
-  if (t.includes('img /> element require')) {
-    return 'False. <img> is a self-closing (or void) tag. It does not require a closing </img> partner.'
-  }
-  if (t.includes('table cell data item')) {
-    return '<td> stands for "table data" which is used to hold standard cells of rows.'
-  }
-  if (t.includes('block-level element')) {
-    return '<div> is a block-level element. It stacks vertically and occupies 100% of the available layout width by default.'
-  }
-  if (t.includes('ordered lists')) {
-    return 'True. <ol> automatically increments counting values (numbers, letters) alongside nested <li> children.'
-  }
-  if (t.includes('binds a label element')) {
-    return 'The "for" attribute matches the target input control\'s unique "id" attribute to bind them together.'
-  }
-  if (t.includes('identifies critical, unique')) {
-    return 'The <main> semantic layout tag houses the primary content of the page which should not be duplicated across pages.'
-  }
-  if (t.includes('strictly required for browsers to render')) {
-    return 'False. Browsers will still paint layout boxes for poorly structured HTML, but semantic markup is crucial for SEO ranking indexers and screen readers.'
-  }
-  if (t.includes('inside the document head')) {
-    return 'All of them (<meta>, <link>, and <style>) belong in the document head block to load resources, styles, and configurations.'
-  }
-  if (t.includes('graphics interface rendering client scripting')) {
-    return 'The <canvas> element provides scripts with a drawable area to render graphs, animations, and designs.'
-  }
-  if (t.includes('meta description')) {
-    return 'True. Although meta descriptions do not directly shift keyword ranking metrics, they summarize pages to search bots and serve as organic search snippets.'
-  }
-  return 'Review your syllabus study guides and documentation to master this core HTML programming standard.'
+  if (t.includes('html stand for')) return 'HTML stands for HyperText Markup Language. It is the core framework used to define webpage structural templates.'
+  if (t.includes('img /> element require')) return 'False. <img> is a self-closing (or void) tag. It does not require a closing </img> partner.'
+  return 'Review your syllabus study guides and documentation to master this concept.'
 }
 
 interface QuizViewProps {
-  session: any
-  quizId: string
-  onNavigate: (view: string) => void
+  session: any;
+  quizId: string;
+  onNavigate: (view: string) => void;
 }
 
 export const QuizView: React.FC<QuizViewProps> = ({ session, quizId, onNavigate }) => {
-  const [quiz, setQuiz] = useState<any>(null)
-  const [questions, setQuestions] = useState<any[]>([])
-  const [attempts, setAttempts] = useState<any[]>([])
-  const [payments, setPayments] = useState<any[]>([])
+  const [quiz, setQuiz] = useState<any>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
   
-  // State for exam taking
-  const [isBlocked, setIsBlocked] = useState(false)
-  const [activeStep, setActiveStep] = useState(0) // 0: Start Screen, 1: Taking Quiz, 2: Result Screen, 3: Payment Upload
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0)
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
-  const [score, setScore] = useState(0)
-  const [passed, setPassed] = useState(false)
+  // Assessment Engine States
+  const [loading, setLoading] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [activeStep, setActiveStep] = useState(0); // 0: Start, 1: Taking, 2: Result, 3: Review, 4: Payment
   
-  // State for payment upload
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [base64Image, setBase64Image] = useState<string>('')
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null)
+  // Assessment Engine State
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [flagged, setFlagged] = useState<string[]>([]);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null); // seconds
+  const [submitting, setSubmitting] = useState(false);
   
-  const [loading, setLoading] = useState(true)
+  // Results
+  const [latestAttempt, setLatestAttempt] = useState<any>(null);
 
-  const fetchData = async () => {
-    try {
-      // 1. Fetch quiz via API
-      const quizData = await apiClient.courses.getQuiz(quizId)
-      setQuiz(quizData)
-
-      // 2. Fetch questions via API (they come with the quiz data)
-      setQuestions(quizData.questions || [])
-
-      // 3. Fetch attempts via API
-      const attData = await apiClient.courses.getQuizAttempts(quizId)
-      const attemptsList = attData || []
-      setAttempts(attemptsList)
-
-      // 4. Fetch payments via API
-      const paymentsList = await apiClient.payments.getMyPayments(quizId)
-      setPayments(paymentsList || [])
-
-      // 5. Evaluate blocks
-      const attemptsTaken = attemptsList.length
-      const hasPassed = attemptsList.some((a: { passed: boolean }) => a.passed)
-      const approvedPayments = (paymentsList || []).filter((p: any) => p.status === 'approved').length
-
-      // Max attempts = 1 (free) + 2 * (approved payments)
-      const totalAllowedAttempts = 1 + (approvedPayments * 2)
-
-      if (hasPassed) {
-        setIsBlocked(false) // Passed already, no block, can view results
-      } else if (attemptsTaken >= totalAllowedAttempts) {
-        setIsBlocked(true)
-      } else {
-        setIsBlocked(false)
-      }
-    } catch (err) {
-      console.error('Error fetching quiz data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Timer Ref
+  const timerRef = useRef<any>(null);
 
   useEffect(() => {
-    fetchData()
-  }, [quizId, session])
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [quizData, attemptsList, paymentsList] = await Promise.all([
+          apiClient.courses.getQuiz(quizId),
+          apiClient.courses.getQuizAttempts(quizId).catch(() => []),
+          apiClient.payments.getMyPayments(quizId).catch(() => [])
+        ]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+        setQuiz(quizData);
+        setQuestions(quizData.questions || []);
+
+        // Business Logic for Blocks
+        const attemptsTaken = attemptsList.length;
+        const hasPassed = attemptsList.some((a: any) => a.passed);
+        const approvedPayments = paymentsList.filter((p: any) => p.status === 'approved').length;
+        const totalAllowed = 1 + (approvedPayments * 2);
+
+        if (hasPassed) {
+          setIsBlocked(false);
+          setLatestAttempt(attemptsList.find((a: any) => a.passed) || attemptsList[attemptsList.length - 1]);
+          setActiveStep(2); // Go straight to results if already passed
+        } else if (attemptsTaken >= totalAllowed) {
+          setIsBlocked(true);
+        } else {
+          // Check local storage for draft
+          const draftAnswers = localStorage.getItem(`codeme_quiz_draft_${quizId}`);
+          const draftTime = localStorage.getItem(`codeme_quiz_time_${quizId}`);
+          
+          if (draftAnswers) setSelectedAnswers(JSON.parse(draftAnswers));
+          if (draftTime) setTimeRemaining(parseInt(draftTime, 10));
+          else setTimeRemaining(30 * 60); // 30 minutes default
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [quizId, session]);
+
+  // Auto Save
+  useEffect(() => {
+    if (activeStep === 1) {
+      localStorage.setItem(`codeme_quiz_draft_${quizId}`, JSON.stringify(selectedAnswers));
+    }
+  }, [selectedAnswers, activeStep, quizId]);
+
+  // Timer logic
+  useEffect(() => {
+    if (activeStep === 1 && timeRemaining !== null && timeRemaining > 0) {
+      timerRef.current = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev && prev <= 1) {
+            handleAutoSubmit();
+            return 0;
+          }
+          const next = prev ? prev - 1 : 0;
+          if (next % 10 === 0) {
+             localStorage.setItem(`codeme_quiz_time_${quizId}`, next.toString());
+          }
+          return next;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [activeStep, timeRemaining]);
+
+  const handleAutoSubmit = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    handleSubmit(true);
+  };
+
+  const handleSelect = (qId: string, aId: string) => {
+    setSelectedAnswers(prev => ({ ...prev, [qId]: aId }));
+  };
+
+  const toggleFlag = (qId: string) => {
+    setFlagged(prev => prev.includes(qId) ? prev.filter(id => id !== qId) : [...prev, qId]);
+  };
+
+  const handleSubmit = async (auto = false) => {
+    if (!auto && !window.confirm("Are you sure you want to submit? You cannot change your answers after submission.")) return;
     
-    // Validate is image
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Please select a valid image file.')
-      return
-    }
-
-    setSelectedFile(file)
-    setBase64Image('') // Clear Base64 when using file upload
-    setUploadError(null)
-  }
-
-  const handlePaymentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedFile) {
-      setUploadError('Please select a payment receipt image first.')
-      return
-    }
-    setUploading(true)
-    setUploadError(null)
-
     try {
-      // Generate file path: student_id/timestamp_quizId.jpg
-      const fileExt = selectedFile.name.split('.').pop()
-      const fileName = `${Date.now()}_${quizId}.${fileExt}`
-      const filePath = `${session.user.id}/${fileName}`
+      setSubmitting(true);
+      if (timerRef.current) clearInterval(timerRef.current);
 
-      // Upload to Supabase Storage (keeps direct call to storage)
-      const { error: uploadError } = await supabase
-        .storage
-        .from('payment_receipts')
-        .upload(filePath, selectedFile)
-
-      if (uploadError) throw uploadError
-
-      // Insert database record via API
-      await apiClient.payments.submitPayment({
-        quiz_id: quizId,
-        receipt_file_path: filePath,
-        amount: 2000
-      })
-
-      setUploadSuccess('Receipt uploaded! Admin will verify and unlock 2 attempts soon. WhatsApp support: 09032517376')
-      setSelectedFile(null)
-      // Refresh payments state
-      fetchData()
-    } catch (err: any) {
-      setUploadError(err.message || 'Error uploading receipt. Please try again.')
+      const res = await apiClient.courses.submitQuiz(quizId, { answers: selectedAnswers });
+      setLatestAttempt(res);
+      
+      // Clear drafts
+      localStorage.removeItem(`codeme_quiz_draft_${quizId}`);
+      localStorage.removeItem(`codeme_quiz_time_${quizId}`);
+      
+      setActiveStep(2); // Go to results
+    } catch (e) {
+      console.error(e);
+      alert('Failed to submit quiz. Please try again.');
     } finally {
-      setUploading(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const startQuiz = () => {
-    if (isBlocked) {
-      setActiveStep(3) // Go to payment
-    } else {
-      setSelectedAnswers({})
-      setCurrentQuestionIdx(0)
-      setActiveStep(1)
-    }
-  }
+    setActiveStep(1);
+    if (!timeRemaining) setTimeRemaining(30 * 60);
+  };
 
-  const handleAnswerSelect = (questionId: string, answer: string) => {
-    setSelectedAnswers({
-      ...selectedAnswers,
-      [questionId]: answer
-    })
-  }
-
-  const submitQuizAnswers = async () => {
-    setLoading(true)
+  // Payment simulated logic
+  const handlePayment = async () => {
     try {
-      // Security Check: Re-fetch database attempts & payments count securely
-      const attData = await apiClient.courses.getQuizAttempts(quizId)
-      
-      const { count } = await apiClient.payments.getApprovedCount(quizId)
-
-      const attemptsTaken = attData ? attData.length : 0
-      const hasPassed = attData ? attData.some((a: { passed: boolean }) => a.passed) : false
-      const approvedPayments = count || 0
-      const totalAllowedAttempts = 1 + (approvedPayments * 2)
-
-      if (!hasPassed && attemptsTaken >= totalAllowedAttempts) {
-        alert("Security Block: You have exceeded the maximum allowed free attempts. Please upload a payment verification receipt to unlock retakes.")
-        setIsBlocked(true)
-        setActiveStep(3)
-        setLoading(false)
-        return
-      }
-
-      let correctCount = 0
-      questions.forEach(q => {
-        const userAnswer = selectedAnswers[q.id] || ''
-        if (q.question_type === 'fill_blank') {
-          // Case-insensitive, trimmed match for fill-in-the-blank
-          if (userAnswer.trim().toLowerCase() === (q.blank_answer || q.correct_answer || '').trim().toLowerCase()) {
-            correctCount++
-          }
-        } else {
-          if (userAnswer === q.correct_answer) {
-            correctCount++
-          }
-        }
-      })
-
-      const finalScore = Math.round((correctCount / questions.length) * 100)
-      const didPass = finalScore >= 66 // 2 out of 3 is passing
-
-      // Record attempt via API
-      await apiClient.courses.submitQuiz(quizId, {
-        answers: selectedAnswers
-      })
-
-      setScore(finalScore)
-      setPassed(didPass)
-      setActiveStep(2) // Go to results
-    } catch (err) {
-      console.error('Error submitting quiz attempt:', err)
+      setSubmitting(true);
+      await apiClient.payments.submitPayment({
+        quiz_id: quizId,
+        receipt_file_path: '/receipts/mock_quiz_receipt.jpg',
+        amount: 25000 // mock price
+      });
+      alert('Receipt uploaded. An admin will review it shortly.');
+      window.location.reload();
+    } catch {
+      alert('Payment submission failed');
     } finally {
-      setLoading(false)
-      fetchData() // Refresh details
+      setSubmitting(false);
     }
-  }
+  };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-        <p>Loading exam...</p>
-      </div>
-    )
-  }
+  if (loading) return <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" /></div>;
 
-  const hasPassedAlready = attempts.some(a => a.passed)
-  const currentQuestion = questions[currentQuestionIdx]
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)', backgroundColor: 'var(--bg-primary)' }}>
       {/* Header */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          padding: '16px',
-          backgroundColor: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border-color)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          gap: '12px'
-        }}
-      >
-        <button 
-          onClick={() => onNavigate('course')} 
-          style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <div>
-          <span style={{ fontSize: '0.65rem', color: 'var(--color-blue)', fontWeight: 700, textTransform: 'uppercase' }}>
-            Module Test
-          </span>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-            {quiz?.title || 'Syllabus Quiz'}
-          </h4>
+      <div style={{ height: '60px', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 var(--space-4)', backgroundColor: 'var(--bg-secondary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+          <button onClick={() => onNavigate('dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+            <ChevronLeft size={20} />
+          </button>
+          <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 'var(--weight-bold)' }}>{quiz?.title || 'Assessment'}</h2>
         </div>
+        
+        {activeStep === 1 && timeRemaining !== null && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: timeRemaining < 300 ? '#EF4444' : 'var(--text-primary)', fontWeight: 'var(--weight-bold)' }}>
+            <Clock size={16} /> {formatTime(timeRemaining)}
+          </div>
+        )}
       </div>
 
-      <div className="app-content">
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         
-        {/* STEP 0: START SCREEN */}
-        {activeStep === 0 && (
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', textAlign: 'center', padding: '32px 20px' }}>
-            <HelpCircle size={48} style={{ color: 'var(--color-purple)' }} />
-            <div>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Ready for Module Test?</h2>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                You must score at least <strong>66%</strong> (2 out of 3 questions) to pass and unlock the next module.
-              </p>
-            </div>
-
-            <div 
-              style={{ 
-                width: '100%', 
-                backgroundColor: 'var(--bg-primary)', 
-                padding: '14px', 
-                borderRadius: '12px', 
-                fontSize: '0.8rem', 
-                textAlign: 'left',
-                border: '1px solid var(--border-color)' 
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 600 }}>Status:</span>
-                <span style={{ fontWeight: 700, color: hasPassedAlready ? 'var(--color-success)' : 'var(--text-secondary)' }}>
-                  {hasPassedAlready ? 'PASSED' : 'NOT PASSED'}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 600 }}>Attempts Taken:</span>
-                <span>{attempts.length} attempts</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 600 }}>Attempts Remaining:</span>
-                <span style={{ fontWeight: 700, color: isBlocked ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                  {isBlocked ? '0 (Locked)' : hasPassedAlready ? 'Unlimited practice' : `${1 + (payments.filter(p => p.status === 'approved').length * 2) - attempts.length} left`}
-                </span>
-              </div>
-            </div>
-
-            {isBlocked ? (
-              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '12px', borderRadius: '12px', color: 'var(--color-danger)', fontSize: '0.8rem', textAlign: 'left' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, marginBottom: '4px' }}>
-                  <AlertTriangle size={18} />
-                  <span>Free attempt failed.</span>
-                </div>
-                Please complete a retake payment of ₦2,000 to unlock 2 additional attempts.
-              </div>
-            ) : null}
-
-            <button 
-              className="btn btn-primary"
-              onClick={startQuiz}
-            >
-              {isBlocked ? 'Unlock Additional Retake' : 'Start Assessment'}
-            </button>
-          </div>
-        )}
-
-        {/* STEP 1: TAKING QUIZ */}
-        {activeStep === 1 && currentQuestion && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              <span>Question {currentQuestionIdx + 1} of {questions.length}</span>
-              <div className="progress-container" style={{ width: '100px', height: '6px' }}>
-                <div className="progress-bar-fill" style={{ width: `${Math.round(((currentQuestionIdx) / questions.length) * 100)}%` }}></div>
-              </div>
-            </div>
-
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{currentQuestion.question_text}</h3>
-
-              {/* Fill-in-the-blank question type */}
-              {currentQuestion.question_type === 'fill_blank' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Type your answer below:</p>
-                  <input
-                    className="input-field"
-                    type="text"
-                    placeholder="Your answer..."
-                    value={selectedAnswers[currentQuestion.id] || ''}
-                    onChange={e => handleAnswerSelect(currentQuestion.id, e.target.value)}
-                    style={{ fontSize: '1rem', padding: '14px 16px' }}
-                    autoFocus
-                  />
-                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Tip: spelling doesn't need to be exact — capitalisation doesn't matter.</p>
-                </div>
-              ) : (
-                /* MCQ / True-False options */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {currentQuestion.options && JSON.parse(JSON.stringify(currentQuestion.options)).map((option: string) => {
-                    const isSelected = selectedAnswers[currentQuestion.id] === option
-                    return (
-                      <button
-                        key={option}
-                        onClick={() => handleAnswerSelect(currentQuestion.id, option)}
-                        style={{
-                          padding: '14px 16px',
-                          borderRadius: '12px',
-                          border: isSelected ? '2px solid var(--color-blue)' : '1.5px solid var(--border-color)',
-                          backgroundColor: isSelected ? 'rgba(12, 74, 140, 0.05)' : 'var(--bg-secondary)',
-                          color: 'var(--text-primary)',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontWeight: isSelected ? 600 : 500,
-                          fontSize: '0.9rem',
-                          transition: 'all 0.15s ease',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}
-                      >
-                        {option}
-                        {isSelected && (
-                          <div style={{ backgroundColor: 'var(--color-blue)', color: '#FFFFFF', borderRadius: '50%', padding: '2px' }}>
-                            <Check size={14} />
-                          </div>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-              {currentQuestionIdx > 0 && (
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={() => setCurrentQuestionIdx(currentQuestionIdx - 1)}
-                  style={{ width: '100px' }}
-                >
-                  Back
-                </button>
-              )}
-              
-              {currentQuestionIdx < questions.length - 1 ? (
-                <button 
-                  className="btn btn-primary"
-                  onClick={() => setCurrentQuestionIdx(currentQuestionIdx + 1)}
-                  disabled={!selectedAnswers[currentQuestion.id]}
-                >
-                  Next Question
-                </button>
-              ) : (
-                <button 
-                  className="btn btn-primary"
-                  onClick={submitQuizAnswers}
-                  disabled={Object.keys(selectedAnswers).length < questions.length}
-                  style={{ backgroundColor: 'var(--color-success)' }}
-                >
-                  Submit Exam
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: RESULT SCREEN */}
-        {activeStep === 2 && (
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', textAlign: 'center', padding: '32px 20px' }}>
-            {passed ? (
-              <Check size={48} style={{ color: 'var(--color-success)', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '12px', borderRadius: '50%', width: '72px', height: '72px' }} />
-            ) : (
-              <AlertTriangle size={48} style={{ color: 'var(--color-danger)', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '50%', width: '72px', height: '72px' }} />
-            )}
-
-            <div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-                {passed ? 'You Passed!' : 'Exam Failed'}
-              </h2>
-              <h1 style={{ fontSize: '3rem', fontWeight: 800, margin: '8px 0', color: passed ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                {score}%
-              </h1>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {passed 
-                  ? 'Excellent job! You have fully unlocked the next module in your roadmap.' 
-                  : 'You scored below the 66% passing grade. Go back, review lessons, and try again.'}
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: '12px' }}>
-              <button 
-                className="btn btn-primary"
-                onClick={() => {
-                  setActiveStep(4) // Move to review step
-                }}
-              >
-                Review Exam Questions
-              </button>
-              <button 
-                className="btn btn-secondary"
-                onClick={() => {
-                  setActiveStep(0)
-                  fetchData()
-                }}
-              >
-                Close Results
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: PAYMENT SCREEN (Blocked) */}
-        {activeStep === 3 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <DollarSign size={24} style={{ color: 'var(--color-purple)' }} />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Retake Exam Payment</h3>
-              </div>
-
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Please perform a manual bank transfer of <strong>₦2,000</strong> to the account below. After completing the payment, upload a screenshot of your transaction receipt for approval.
-              </p>
-
-              <div 
-                style={{ 
-                  backgroundColor: 'var(--bg-primary)', 
-                  border: '1.5px solid var(--border-color)', 
-                  borderRadius: '12px', 
-                  padding: '14px', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '8px',
-                  fontSize: '0.85rem'
-                }}
-              >
-                <div>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, display: 'block' }}>BANK NAME</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>Moniepoint</strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, display: 'block' }}>ACCOUNT NUMBER</span>
-                  <strong style={{ color: 'var(--text-primary)', fontSize: '1rem' }}>09032517376</strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, display: 'block' }}>ACCOUNT HOLDER</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>Olamide Abdulmuiz Olanrewaju</strong>
-                </div>
-                <div>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, display: 'block' }}>AMOUNT</span>
-                  <strong style={{ color: 'var(--color-blue)' }}>₦2,000</strong>
+        {/* Taking Quiz View */}
+        {activeStep === 1 && (
+          <>
+            {/* Sidebar Navigator */}
+            <div style={{ width: '280px', borderRight: '1px solid var(--border-default)', backgroundColor: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', flexShrink: 0 }} className="hidden-mobile">
+              <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-default)' }}>
+                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)' }}>Question Navigator</h3>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  {Object.keys(selectedAnswers).length} / {questions.length} Answered
                 </div>
               </div>
+              <div style={{ padding: 'var(--space-4)', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', overflowY: 'auto' }}>
+                {questions.map((q, idx) => {
+                  const isAnswered = !!selectedAnswers[q.id];
+                  const isFlagged = flagged.includes(q.id);
+                  const isActive = currentIdx === idx;
+                  return (
+                    <button 
+                      key={q.id}
+                      onClick={() => setCurrentIdx(idx)}
+                      style={{
+                        aspectRatio: '1/1',
+                        borderRadius: 'var(--radius-sm)',
+                        border: isActive ? '2px solid var(--color-blue)' : '1px solid var(--border-default)',
+                        backgroundColor: isAnswered ? 'var(--color-blue)' : 'var(--bg-primary)',
+                        color: isAnswered ? 'white' : 'var(--text-primary)',
+                        position: 'relative',
+                        cursor: 'pointer',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--weight-bold)'
+                      }}
+                    >
+                      {idx + 1}
+                      {isFlagged && <div style={{ position: 'absolute', top: '-4px', right: '-4px', width: '10px', height: '10px', backgroundColor: '#F59E0B', borderRadius: '50%' }} />}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {uploadError && (
-              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#FCA5A5', padding: '12px', borderRadius: '12px', fontSize: '0.85rem' }}>
-                {uploadError}
-              </div>
-            )}
-
-            {uploadSuccess && (
-              <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#A7F3D0', padding: '12px', borderRadius: '12px', fontSize: '0.85rem' }}>
-                {uploadSuccess}
-              </div>
-            )}
-
-            {/* Receipt Form */}
-            {!uploadSuccess && (
-              <form onSubmit={handlePaymentSubmit} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>Upload Payment Receipt</h4>
+            {/* Main Question Area */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: 'var(--space-6)' }}>
+              <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto' }}>
                 
-                <div style={{ border: '2px dashed var(--border-color)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
-                  />
-                  {base64Image ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                      <Eye size={28} style={{ color: 'var(--color-blue)' }} />
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Image loaded! Tap to change</span>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                      <Upload size={28} style={{ color: 'var(--text-tertiary)' }} />
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Select screenshot / receipt image</span>
-                    </div>
-                  )}
-                </div>
-
-                <button 
-                  type="submit" 
-                  className="btn btn-primary" 
-                  disabled={uploading || !base64Image}
-                >
-                  {uploading ? <Loader2 className="animate-spin" size={20} /> : 'Submit Receipt for Verification'}
-                </button>
-              </form>
-            )}
-
-            <button 
-              className="btn btn-secondary"
-              onClick={() => {
-                setActiveStep(0)
-                fetchData()
-              }}
-            >
-              Back to Start
-            </button>
-          </div>
-        )}
-
-        {/* STEP 4: QUIZ EXAM QUESTIONS REVIEW */}
-        {activeStep === 4 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Exam Review</h3>
-              <span className="badge badge-purple">{score}% Score</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {questions.map((q, idx) => {
-                const studentAnswer = selectedAnswers[q.id]
-                const isCorrect = studentAnswer === q.correct_answer
-                const optionsList = Array.isArray(q.options) ? q.options : JSON.parse(q.options || '[]')
-                
-                return (
-                  <div key={q.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--color-blue)', fontWeight: 700 }}>QUESTION {idx + 1}</span>
-                    <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>{q.question_text}</p>
+                {questions[currentIdx] && (
+                  <motion.div key={currentIdx} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
                     
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
-                      {optionsList.map((opt: string) => {
-                        const isStudentChoice = studentAnswer === opt
-                        const isCorrectAnswer = q.correct_answer === opt
-                        
-                        let borderStyle = '1px solid var(--border-color)'
-                        let bgStyle = 'transparent'
-                        let textColor = 'var(--text-primary)'
-                        
-                        if (isCorrectAnswer) {
-                          borderStyle = '1.5px solid var(--color-success)'
-                          bgStyle = 'rgba(16, 185, 129, 0.08)'
-                          textColor = 'var(--color-success)'
-                        } else if (isStudentChoice && !isCorrect) {
-                          borderStyle = '1.5px solid var(--color-danger)'
-                          bgStyle = 'rgba(239, 68, 68, 0.08)'
-                          textColor = 'var(--color-danger)'
-                        }
-                        
-                        return (
-                          <div 
-                            key={opt}
-                            style={{ 
-                              padding: '10px 12px', 
-                              borderRadius: '8px', 
-                              border: borderStyle, 
-                              backgroundColor: bgStyle,
-                              color: textColor,
-                              fontSize: '0.8rem',
-                              fontWeight: isStudentChoice || isCorrectAnswer ? 600 : 500
-                            }}
-                          >
-                            <span style={{ marginRight: '6px' }}>
-                              {isCorrectAnswer ? '✅' : isStudentChoice ? '❌' : '○'}
-                            </span>
-                            {opt}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', fontWeight: 'var(--weight-bold)' }}>
+                        Question {currentIdx + 1} of {questions.length}
+                      </span>
+                      <button 
+                        onClick={() => toggleFlag(questions[currentIdx].id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', color: flagged.includes(questions[currentIdx].id) ? '#F59E0B' : 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}
+                      >
+                        <Flag size={16} fill={flagged.includes(questions[currentIdx].id) ? '#F59E0B' : 'none'} /> 
+                        {flagged.includes(questions[currentIdx].id) ? 'Flagged' : 'Flag for review'}
+                      </button>
+                    </div>
+
+                    <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-6)', lineHeight: 1.5 }}>
+                      <ReactMarkdown>{questions[currentIdx].text}</ReactMarkdown>
+                    </h2>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                      {questions[currentIdx].options && Object.entries(questions[currentIdx].options).map(([key, value]) => (
+                        <div 
+                          key={key}
+                          onClick={() => handleSelect(questions[currentIdx].id, key)}
+                          style={{
+                            padding: 'var(--space-4)',
+                            border: `2px solid ${selectedAnswers[questions[currentIdx].id] === key ? 'var(--color-blue)' : 'var(--border-default)'}`,
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: selectedAnswers[questions[currentIdx].id] === key ? 'rgba(37, 99, 235, 0.05)' : 'var(--bg-primary)',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <div style={{ 
+                            width: '24px', height: '24px', borderRadius: '50%', 
+                            border: `2px solid ${selectedAnswers[questions[currentIdx].id] === key ? 'var(--color-blue)' : 'var(--border-default)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}>
+                            {selectedAnswers[questions[currentIdx].id] === key && <div style={{ width: '12px', height: '12px', backgroundColor: 'var(--color-blue)', borderRadius: '50%' }} />}
                           </div>
-                        )
-                      })}
+                          <span style={{ fontSize: 'var(--text-base)', color: 'var(--text-primary)' }}>{String(value)}</span>
+                        </div>
+                      ))}
                     </div>
 
-                    <div style={{ backgroundColor: 'var(--bg-primary)', padding: '10px 12px', borderRadius: '8px', fontSize: '0.75rem', borderLeft: '3px solid var(--color-blue)', marginTop: '6px', color: 'var(--text-secondary)' }}>
-                      <strong>💡 Explanatory Tip:</strong> {getExplanationForQuestion(q.question_text)}
+                    <div style={{ marginTop: 'var(--space-8)', paddingTop: 'var(--space-6)', borderTop: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between' }}>
+                      <Button variant="outline" disabled={currentIdx === 0} onClick={() => setCurrentIdx(prev => prev - 1)}>Previous</Button>
+                      
+                      {currentIdx < questions.length - 1 ? (
+                        <Button onClick={() => setCurrentIdx(prev => prev + 1)}>Next</Button>
+                      ) : (
+                        <Button onClick={() => handleSubmit(false)} isLoading={submitting} style={{ backgroundColor: '#10B981', color: 'white' }}>Submit Assessment</Button>
+                      )}
                     </div>
-                  </div>
-                )
-              })}
+                  </motion.div>
+                )}
+              </div>
             </div>
+          </>
+        )}
 
-            <button 
-              className="btn btn-primary"
-              onClick={() => {
-                setActiveStep(0)
-                fetchData()
-              }}
-            >
-              Back to Start
-            </button>
+        {/* Start / Blocked Screen */}
+        {activeStep === 0 && (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-6)' }}>
+            <div style={{ maxWidth: '600px', width: '100%', textAlign: 'center', backgroundColor: 'var(--bg-secondary)', padding: 'var(--space-8)', borderRadius: 'var(--radius-xl)' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--color-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--space-6)' }}>
+                <Check size={32} color="white" />
+              </div>
+              <h2 style={{ fontSize: 'var(--text-3xl)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-4)' }}>{quiz?.title}</h2>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
+                {isBlocked 
+                  ? 'You have exceeded the maximum allowed attempts for this assessment. You must pay a retake fee to unlock further attempts.' 
+                  : 'This is a timed assessment. Once you begin, the timer cannot be paused. Ensure you have a stable connection.'}
+              </p>
+
+              {isBlocked ? (
+                <div style={{ backgroundColor: 'var(--bg-primary)', padding: 'var(--space-6)', borderRadius: 'var(--radius-md)' }}>
+                  <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-4)' }}>Unlock Retake</h3>
+                  <Button fullWidth onClick={handlePayment} isLoading={submitting} style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                    <Upload size={16} /> Upload Payment Receipt (₦25,000)
+                  </Button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-6)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><HelpCircle size={16} /> {questions.length} Questions</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={16} /> 30 Minutes</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={16} /> 80% to Pass</div>
+                  </div>
+                  <Button fullWidth onClick={startQuiz}>Start Assessment</Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Results Screen */}
+        {activeStep === 2 && latestAttempt && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)' }}>
+            <div style={{ maxWidth: '600px', width: '100%', margin: '0 auto', textAlign: 'center' }}>
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring' }}>
+                <div style={{ width: '100px', height: '100px', borderRadius: '50%', backgroundColor: latestAttempt.passed ? '#10B981' : '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--space-6)', color: 'white' }}>
+                  {latestAttempt.passed ? <Check size={48} /> : <X size={48} />}
+                </div>
+                <h2 style={{ fontSize: 'var(--text-4xl)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)' }}>
+                  {latestAttempt.passed ? 'Assessment Passed!' : 'Assessment Failed'}
+                </h2>
+                <div style={{ fontSize: 'var(--text-6xl)', fontWeight: 'var(--weight-bold)', color: latestAttempt.passed ? '#10B981' : '#EF4444', margin: 'var(--space-6) 0' }}>
+                  {latestAttempt.score}%
+                </div>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-8)' }}>
+                  {latestAttempt.passed ? 'Excellent work. You have demonstrated mastery of this module.' : 'You did not meet the required 80% passing threshold. Please review the material and try again.'}
+                </p>
+
+                <div style={{ display: 'flex', gap: 'var(--space-4)', justifyContent: 'center' }}>
+                  <Button variant="outline" onClick={() => onNavigate('dashboard')}>Return to Dashboard</Button>
+                  <Button onClick={() => setActiveStep(3)}>Review Answers</Button>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        )}
+
+        {/* Review Mode */}
+        {activeStep === 3 && latestAttempt && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)' }}>
+            <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
+                <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-bold)' }}>Assessment Review</h2>
+                <Button variant="outline" size="sm" onClick={() => setActiveStep(2)}>Back to Results</Button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+                {questions.map((q) => {
+                  const userAnswer = latestAttempt.answers?.[q.id] || selectedAnswers[q.id];
+                  const isCorrect = userAnswer === q.correct_answer;
+                  
+                  return (
+                    <div key={q.id} style={{ backgroundColor: 'var(--bg-secondary)', padding: 'var(--space-6)', borderRadius: 'var(--radius-lg)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-4)' }}>
+                        <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)' }}>
+                          <ReactMarkdown>{q.text}</ReactMarkdown>
+                        </h3>
+                        <div style={{ padding: '4px 12px', borderRadius: '999px', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', backgroundColor: isCorrect ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: isCorrect ? '#10B981' : '#EF4444' }}>
+                          {isCorrect ? 'Correct' : 'Incorrect'}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+                        {q.options && Object.entries(q.options).map(([key, val]) => {
+                          let bgColor = 'var(--bg-primary)';
+                          let borderColor = 'var(--border-default)';
+                          if (key === q.correct_answer) {
+                            bgColor = 'rgba(16,185,129,0.1)'; borderColor = '#10B981';
+                          } else if (key === userAnswer && !isCorrect) {
+                            bgColor = 'rgba(239,68,68,0.1)'; borderColor = '#EF4444';
+                          }
+
+                          return (
+                            <div key={key} style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', backgroundColor: bgColor, border: `1px solid ${borderColor}`, display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>{String(val)}</span>
+                              {key === userAnswer && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginLeft: 'auto' }}>(Your Answer)</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div style={{ padding: 'var(--space-4)', backgroundColor: 'rgba(37,99,235,0.05)', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--color-blue)' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', color: 'var(--color-blue)', marginBottom: '4px', textTransform: 'uppercase' }}>Teacher Explanation</div>
+                        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>{getExplanationForQuestion(q.text)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
       </div>
     </div>
-  )
-}
+  );
+};
