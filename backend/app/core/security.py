@@ -18,10 +18,14 @@ async def verify_token(
     """
     try:
         token = credentials.credentials
+        # Decode header first to see what algorithm Supabase is using
+        unverified_header = jwt.get_unverified_header(token)
+        token_alg = unverified_header.get("alg", "HS256")
+        
         payload = jwt.decode(
             token,
             settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
+            algorithms=["HS256", "RS256", "HS384", "HS512", token_alg],
             audience="authenticated"
         )
         
