@@ -26,7 +26,7 @@ async def verify_token(
             import urllib.request
             import json
             # Supabase new default is RS256, but could be other asymmetric algs. Fetch the public keys to verify.
-            jwks_url = f"{settings.SUPABASE_PROJECT_URL}/rest/v1/jwks"
+            jwks_url = f"{settings.SUPABASE_PROJECT_URL}/auth/v1/.well-known/jwks.json"
             with urllib.request.urlopen(jwks_url) as response:
                 jwks = json.loads(response.read().decode())
                 
