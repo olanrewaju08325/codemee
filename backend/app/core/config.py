@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     GROQ_API_KEYS: str = ""
     
     # CORS (comma-separated in .env, parsed into a list at runtime)
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://codeme-academy.vercel.app,https://frontend-beryl-psi-45.vercel.app"
     
     # Environment
     ENVIRONMENT: str = "development"
