@@ -6,7 +6,11 @@ from app.core.config import settings
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.ENVIRONMENT == "development",
-    future=True
+    future=True,
+    connect_args={
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    }
 )
 
 # Create async session factory
