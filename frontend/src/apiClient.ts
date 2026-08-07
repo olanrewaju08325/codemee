@@ -2,6 +2,10 @@
 // This replaces direct Supabase data calls with backend API calls
 import { supabase } from './supabaseClient';
 
+// In production (Vercel), prepend the Render backend URL.
+// In development, Vite's proxy handles /api → localhost:8000, so we use '' (empty).
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
 // Get the current Supabase session token
 async function getAuthToken(): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -27,12 +31,13 @@ async function authenticatedFetch(url: string, options: RequestInit = {}): Promi
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  // URL should include full path with /api prefix
-  // The vite proxy will forward /api requests to the backend
-  return fetch(url, {
+  // Prepend the backend base URL so production calls go to Render, not Vercel
+  const fullUrl = `${API_BASE_URL}${url}`;
+  return fetch(fullUrl, {
     ...options,
     headers,
   });
+
 }
 
 // Auth & Profile API
