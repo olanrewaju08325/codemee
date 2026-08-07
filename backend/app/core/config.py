@@ -34,8 +34,13 @@ class Settings(BaseSettings):
     
     @property
     def cors_origins_list(self) -> List[str]:
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
-    
+        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        # Force production frontend URLs to avoid CORS lockouts if env var is misconfigured on Render
+        required_origins = ["https://codeme-academy.vercel.app", "https://frontend-beryl-psi-45.vercel.app"]
+        for ro in required_origins:
+            if ro not in origins:
+                origins.append(ro)
+        return origins    
     class Config:
         env_file = ".env"
         case_sensitive = True
