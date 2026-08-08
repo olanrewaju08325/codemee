@@ -58,6 +58,8 @@ app.include_router(ai.router, prefix="/api", tags=["AI"])
 app.include_router(analytics.router, prefix="/api", tags=["Analytics"])
 app.include_router(audit_logs.router)
 app.include_router(database.router)
+from app.routers import admin_batches
+app.include_router(admin_batches.router)
 app.include_router(student_dashboard.router)
 app.include_router(teacher_dashboard.router)
 app.include_router(teacher_ai.router)

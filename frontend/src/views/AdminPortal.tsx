@@ -15,6 +15,7 @@ import { ErrorTracker } from '../components/admin/ErrorTracker';
 import { IncidentRegister } from '../components/admin/IncidentRegister';
 import { PerformanceMetrics } from '../components/admin/PerformanceMetrics';
 import { AdminCourseManagement } from '../components/admin/AdminCourseManagement';
+import { AdminEmailSettings } from '../components/admin/AdminEmailSettings';
 
 const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
   <div className={`p-6 rounded-xl border border-[var(--border)] bg-[var(--surface-dark)]`}>
@@ -121,6 +122,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
         {/* Content Area */}
         <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            {['settings'].includes(activeTab) && (
+              <AdminEmailSettings />
+            )}
+            
             {activeTab === 'health' && (
               <div className="flex flex-col gap-6">
                 <SystemHealthDashboard />
