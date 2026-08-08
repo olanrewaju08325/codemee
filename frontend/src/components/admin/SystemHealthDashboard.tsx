@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Activity, Server, Database, Cloud, Shield, Mail } from "lucide-react";
-import { supabase } from "../../supabaseClient";
+import apiClient from "../../apiClient";
 
 export const SystemHealthDashboard = () => {
   const [health, setHealth] = useState<any>(null);
@@ -9,13 +9,8 @@ export const SystemHealthDashboard = () => {
   useEffect(() => {
     const fetchHealth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/monitoring/health`, {
-          headers: { "Authorization": `Bearer ${session?.access_token}` }
-        });
-        if (res.ok) {
-          setHealth(await res.json());
-        }
+        const data = await apiClient.system.getMonitoringHealth();
+        if (data) setHealth(data);
       } catch (e) {
         console.error("Failed to fetch health data", e);
       }

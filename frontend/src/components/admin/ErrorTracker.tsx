@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
-import { supabase } from "../../supabaseClient";
+import apiClient from "../../apiClient";
 
 export const ErrorTracker = () => {
   const [errors, setErrors] = useState<any[]>([]);
@@ -9,13 +9,8 @@ export const ErrorTracker = () => {
   useEffect(() => {
     const fetchErrors = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/monitoring/errors`, {
-          headers: { "Authorization": `Bearer ${session?.access_token}` }
-        });
-        if (res.ok) {
-          setErrors(await res.json());
-        }
+        const data = await apiClient.system.getErrors();
+        if (data) setErrors(data);
       } catch (e) {
         console.error("Failed to fetch errors", e);
       }

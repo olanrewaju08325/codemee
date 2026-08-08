@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, DollarSign, Activity, Zap, Download } from "lucide-react";
 import { Card } from "../../components/ui/Card";
-import apiClient from "../../apiClient";
+import apiClient, { API_BASE_URL } from "../../apiClient";
 
 export const AdminAnalyticsDashboard = () => {
   const [data, setData] = useState<any>(null);
@@ -29,7 +29,7 @@ export const AdminAnalyticsDashboard = () => {
       // In production, we can use the backend authenticatedFetch wrapper logic to download blob,
       // but for MVP we construct a tokenized URL or fetch and parse blob
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/analytics/export?type=${type}`, {
+      const response = await fetch(`${API_BASE_URL}/api/analytics/export?type=${type}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error("Export failed");
@@ -52,13 +52,8 @@ export const AdminAnalyticsDashboard = () => {
 
   const { platform_overview, financial_dashboard, ai_analytics } = data;
 
-  // Mock trend data for the area chart since we don't have historical series in backend yet for MVP
-  const revenueData = [
-    { name: "Jan", revenue: financial_dashboard.total_revenue * 0.2 },
-    { name: "Feb", revenue: financial_dashboard.total_revenue * 0.4 },
-    { name: "Mar", revenue: financial_dashboard.total_revenue * 0.7 },
-    { name: "Apr", revenue: financial_dashboard.total_revenue }
-  ];
+  // Mock trend data removed as per DO NOT FABRICATE STATISTICS rule
+  const revenueData: any[] = [];
 
   return (
     <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "24px" }}>

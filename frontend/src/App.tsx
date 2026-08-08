@@ -3,14 +3,18 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AppRouter } from './router/AppRouter';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
+import { ThemeProvider } from './contexts/ThemeContext';
+
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <HashRouter>
-          <AppRouter />
-        </HashRouter>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <HashRouter>
+            <AppRouter />
+          </HashRouter>
+        </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

@@ -613,6 +613,12 @@ export const adminAPI = {
     if (!response.ok) throw new Error('Failed to fetch financial reports');
     return response.json();
   },
+
+  getUsers: async () => {
+    const response = await authenticatedFetch('/api/admin/users');
+    if (!response.ok) throw new Error('Failed to fetch users');
+    return response.json();
+  },
 };
 
 // Payments API
@@ -832,6 +838,65 @@ export const analyticsAPI = {
   }
 };
 
+export const systemAPI = {
+  getHealth: async () => {
+    const response = await authenticatedFetch('/api/health');
+    if (!response.ok) throw new Error('Failed to fetch system health');
+    return response.json();
+  },
+  getMonitoringHealth: async () => {
+    const response = await authenticatedFetch('/api/admin/monitoring/health');
+    if (!response.ok) throw new Error('Failed to fetch monitoring health');
+    return response.json();
+  },
+  getIncidents: async () => {
+    const response = await authenticatedFetch('/api/admin/monitoring/incidents');
+    if (!response.ok) throw new Error('Failed to fetch incidents');
+    return response.json();
+  },
+  getErrors: async () => {
+    const response = await authenticatedFetch('/api/admin/monitoring/errors');
+    if (!response.ok) throw new Error('Failed to fetch errors');
+    return response.json();
+  },
+  getDatabaseHealth: async () => {
+    const response = await authenticatedFetch('/api/admin/database/health');
+    if (!response.ok) throw new Error('Failed to fetch database health');
+    return response.json();
+  },
+  getSystemAudit: async () => {
+    const response = await authenticatedFetch('/api/admin/system/audit');
+    if (!response.ok) throw new Error('Failed to fetch system audit');
+    return response.json();
+  },
+};
+
+export const studentAPI = {
+  getDashboard: async () => {
+    const response = await authenticatedFetch('/api/student/dashboard');
+    if (!response.ok) throw new Error('Failed to fetch student dashboard');
+    return response.json();
+  },
+  completeOnboarding: async () => {
+    const response = await authenticatedFetch('/api/student/dashboard/onboarding/complete', {
+      method: 'POST'
+    });
+    if (!response.ok) throw new Error('Failed to complete onboarding');
+    return response.json();
+  },
+};
+
+export const teacherAPI = {
+  getAIDraft: async (prompt: string, context: string) => {
+    const response = await authenticatedFetch('/api/teacher/ai/draft', {
+      method: 'POST',
+      body: JSON.stringify({ prompt, context })
+    });
+    if (!response.ok) throw new Error('Failed to fetch AI draft');
+    return response.json();
+  },
+};
+
 export default {
   auth: authAPI,
   enrollment: enrollmentAPI,
@@ -846,4 +911,7 @@ export default {
   support: supportAPI,
   ai: aiAPI,
   analytics: analyticsAPI,
+  system: systemAPI,
+  student: studentAPI,
+  teacher: teacherAPI,
 };

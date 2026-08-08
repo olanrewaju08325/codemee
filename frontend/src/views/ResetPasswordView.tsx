@@ -58,7 +58,7 @@ export const ResetPasswordView = () => {
 
   return (
     <div className="full-screen-view theme-dark" style={{ background: 'radial-gradient(circle at center, #1b1030 0%, #07060d 100%)', minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '100%', maxWidth: '400px', padding: 'var(--space-6)', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div style={{ width: '100%', maxWidth: '400px', padding: 'var(--space-6)', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-lg)' }}>
         <h2 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '16px', textAlign: 'center' }} className="gradient-text">
           Create New Password
         </h2>

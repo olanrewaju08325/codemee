@@ -4,12 +4,8 @@ import { Bookmark, Search, BookOpen, ExternalLink, MessageCircle } from "lucide-
 export const MyBookmarks = () => {
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Mock data for UI visual validation before backend integration
-  const bookmarks = [
-    { id: "1", type: "lesson", title: "React Context API Fundamentals", date: "2026-08-05", course: "Frontend Mastery" },
-    { id: "2", type: "resource", title: "Python Cheat Sheet (PDF)", date: "2026-08-01", course: "Python Zero to Hero" },
-    { id: "3", type: "announcement", title: "Platform Maintenance Window", date: "2026-07-28", course: "System" }
-  ];
+  // Removed mock data to adhere to the REAL DATA ONLY directive
+  const bookmarks: any[] = [];
 
   const getIcon = (type: string) => {
     switch(type) {

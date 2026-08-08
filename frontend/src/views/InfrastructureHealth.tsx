@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Activity, Database, Server, Settings, CheckCircle, AlertTriangle } from "lucide-react";
-import { supabase } from "../supabaseClient";
-
+import apiClient from "../apiClient";
 export const InfrastructureHealth = () => {
   const [health, setHealth] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -9,13 +8,7 @@ export const InfrastructureHealth = () => {
   useEffect(() => {
     const fetchHealth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const response = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/health`, {
-          headers: {
-            "Authorization": `Bearer ${session?.access_token}`
-          }
-        });
-        const data = await response.json();
+        const data = await apiClient.system.getHealth();
         setHealth(data);
       } catch (error) {
         console.error("Failed to fetch infrastructure health:", error);

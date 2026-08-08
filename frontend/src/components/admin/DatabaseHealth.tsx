@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Database, Server, HardDrive, RefreshCw, AlertTriangle } from "lucide-react";
-import { supabase } from "../../supabaseClient";
+import apiClient from "../../apiClient";
 
 export const DatabaseHealth = () => {
   const [data, setData] = useState<any>(null);
@@ -11,18 +11,8 @@ export const DatabaseHealth = () => {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/database/health`, {
-        headers: {
-          "Authorization": `Bearer ${session?.access_token}`
-        }
-      });
-      if (response.ok) {
-        const json = await response.json();
-        setData(json);
-      } else {
-        setError("Failed to fetch database health.");
-      }
+      const json = await apiClient.system.getDatabaseHealth();
+      setData(json);
     } catch {
       setError("An error occurred while connecting to the server.");
     } finally {

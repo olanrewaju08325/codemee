@@ -6,6 +6,7 @@ import {
   Zap, Star, CheckCircle,
   Send, Loader2, X, GraduationCap, Users, Clock, Video
 } from 'lucide-react'
+import { ThemeSwitcher } from '../components/ThemeSwitcher'
 
 interface LandingViewProps {
   onNavigateToAuth: () => void
@@ -78,16 +79,17 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
   }
 
   return (
-    <div className="full-screen-view theme-dark" style={{ overflowY: 'auto', display: 'block', height: '100%' }}>
+    <div className="full-screen-view" style={{ overflowY: 'auto', display: 'block', height: '100%' }}>
 
       {/* ── Sticky Navbar ── */}
-      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', backgroundColor: 'rgba(7,6,13,0.9)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', backgroundColor: 'var(--bg-app)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid var(--border-default)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/codeme.jpg" alt="CodeMe Logo" style={{ width: '36px', height: '36px', borderRadius: '8px', border: '2px solid var(--color-blue)' }} />
-          <h1 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '0.5px', margin: 0 }}>CodeMe Academy</h1>
+          <img src="/codeme.jpg" alt="CodeMe Logo" style={{ width: '40px', height: '40px', borderRadius: '8px', border: '2px solid var(--primary)' }} />
+          <h1 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '0.5px', margin: 0, color: 'var(--text-primary)' }}>CodeMe Academy</h1>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button className="btn btn-secondary" onClick={onNavigateToAuth} style={{ backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.2)', padding: '8px 16px', fontSize: '0.85rem' }}>
+          <ThemeSwitcher />
+          <button className="btn btn-secondary" onClick={onNavigateToAuth} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
             Sign In
           </button>
           <button className="btn btn-primary" onClick={() => setShowApplyModal(true)} style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>

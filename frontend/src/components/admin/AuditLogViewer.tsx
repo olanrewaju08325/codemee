@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Activity, ShieldAlert, Filter } from "lucide-react";
-import { supabase } from "../../supabaseClient";
+import apiClient from "../../apiClient";
 
 export const AuditLogViewer = () => {
   const [logs, setLogs] = useState<any[]>([]);
@@ -9,13 +9,8 @@ export const AuditLogViewer = () => {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/system/audit`, {
-          headers: { "Authorization": `Bearer ${session?.access_token}` }
-        });
-        if (res.ok) {
-          setLogs(await res.json());
-        }
+        const data = await apiClient.system.getSystemAudit();
+        if (data) setLogs(data);
       } catch (e) {
         console.error("Failed to fetch audit logs", e);
       }

@@ -117,14 +117,6 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ session }) => {
                     </td>
                   </tr>
                 )}
-                {/* Mock In-Progress Course */}
-                <tr style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '12px' }}>WD102</td>
-                  <td style={{ padding: '12px' }}>CSS Architecture</td>
-                  <td style={{ padding: '12px' }}>3.0</td>
-                  <td style={{ padding: '12px' }}>--</td>
-                  <td style={{ padding: '12px', color: '#F59E0B' }}>In Progress</td>
-                </tr>
               </tbody>
             </table>
           </div>

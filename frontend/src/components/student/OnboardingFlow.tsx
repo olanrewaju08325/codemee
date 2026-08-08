@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronRight, CheckCircle, SkipForward } from "lucide-react";
-import { supabase } from "../../supabaseClient";
+import apiClient from "../../apiClient";
 
 interface Props {
   onComplete: () => void;
@@ -13,11 +13,7 @@ export const OnboardingFlow = ({ onComplete }: Props) => {
   const completeOnboarding = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/student/dashboard/onboarding/complete`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${session?.access_token}` }
-      });
+      await apiClient.student.completeOnboarding();
       onComplete();
     } catch (e) {
       console.error(e);

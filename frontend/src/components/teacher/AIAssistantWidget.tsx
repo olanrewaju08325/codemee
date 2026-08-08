@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Sparkles, Loader } from "lucide-react";
-import { supabase } from "../../supabaseClient";
+import apiClient from "../../apiClient";
 
 interface Props {
   onSuggest: (text: string) => void;
@@ -13,20 +13,9 @@ export const AIAssistantWidget = ({ onSuggest, context }: Props) => {
   const handleDraft = async (type: string) => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const prompt = `Generate a ${type} based on: ${context}`;
-      
-      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/teacher/ai/draft`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${session?.access_token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ prompt })
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
+      const data = await apiClient.teacher.getAIDraft(prompt, context);
+      if (data && data.suggestion) {
         onSuggest(data.suggestion);
       }
     } catch (e) {

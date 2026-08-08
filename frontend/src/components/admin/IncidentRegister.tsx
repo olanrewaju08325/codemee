@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ListCollapse } from "lucide-react";
-import { supabase } from "../../supabaseClient";
+import apiClient from "../../apiClient";
 
 export const IncidentRegister = () => {
   const [incidents, setIncidents] = useState<any[]>([]);
@@ -9,13 +9,8 @@ export const IncidentRegister = () => {
   useEffect(() => {
     const fetchIncidents = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/monitoring/incidents`, {
-          headers: { "Authorization": `Bearer ${session?.access_token}` }
-        });
-        if (res.ok) {
-          setIncidents(await res.json());
-        }
+        const data = await apiClient.system.getIncidents();
+        if (data) setIncidents(data);
       } catch (e) {
         console.error("Failed to fetch incidents", e);
       }

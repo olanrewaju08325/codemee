@@ -1,5 +1,6 @@
 import { Home, BookOpen, User, Settings, LayoutDashboard, Database, Activity, Download } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { ThemeSwitcher } from '../ThemeSwitcher';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -19,15 +20,13 @@ export const Sidebar = ({ isCollapsed, isMobileOpen, onCloseMobile, userRole }: 
       ],
       teacher: [
         { id: 'teacher-panel', path: '/teacher-panel', label: 'Teacher Panel', icon: <LayoutDashboard size={20} /> },
-        { id: 'courses', path: '/teacher/courses', label: 'Course Management', icon: <BookOpen size={20} /> },
         { id: 'analytics', path: '/analytics/teacher', label: 'Analytics', icon: <Activity size={20} /> },
         { id: 'profile', path: '/profile', label: 'Profile', icon: <User size={20} /> },
       ],
       admin: [
         { id: 'admin', path: '/admin', label: 'Admin Portal', icon: <Database size={20} /> },
         { id: 'analytics', path: '/analytics/admin', label: 'Executive Analytics', icon: <Activity size={20} /> },
-        { id: 'activity', path: '/admin/activity', label: 'Activity Logs', icon: <Activity size={20} /> },
-        { id: 'settings', path: '/admin/settings', label: 'System Settings', icon: <Settings size={20} /> },
+        { id: 'profile', path: '/profile', label: 'Profile', icon: <User size={20} /> },
       ]
     };
 
@@ -44,11 +43,9 @@ export const Sidebar = ({ isCollapsed, isMobileOpen, onCloseMobile, userRole }: 
         <div className="app-sidebar-header">
           {/* Logo or Brand */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', width: '100%' }}>
-            <div style={{ width: 32, height: 32, background: 'var(--color-primary-500)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', flexShrink: 0 }}>
-              C
-            </div>
+            <img src="/codeme.jpg" alt="CodeMe Logo" style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '2px solid var(--primary)', flexShrink: 0, objectFit: 'contain' }} />
             {!isCollapsed && (
-              <span style={{ fontFamily: 'var(--font-headings)', fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-lg)' }}>CodeMe</span>
+              <span style={{ fontFamily: 'var(--font-headings)', fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-lg)', color: 'var(--text-primary)' }}>CodeMe</span>
             )}
           </div>
         </div>
@@ -69,6 +66,11 @@ export const Sidebar = ({ isCollapsed, isMobileOpen, onCloseMobile, userRole }: 
           </nav>
   
           <div className="app-sidebar-footer">
+            {!isCollapsed && (
+              <div className="px-4 mb-4">
+                <ThemeSwitcher />
+              </div>
+            )}
             <button
               onClick={() => window.dispatchEvent(new Event("codeme-install"))}
               className="sidebar-item"

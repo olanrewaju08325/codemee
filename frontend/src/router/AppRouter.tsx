@@ -37,6 +37,7 @@ const DesignSystemView = lazy(() => import('../views/DesignSystemView').then(m =
 const LayoutPreviewView = lazy(() => import('../views/LayoutPreviewView').then(m => ({ default: m.LayoutPreviewView })));
 const ResetPasswordView = lazy(() => import('../views/ResetPasswordView').then(m => ({ default: m.ResetPasswordView })));
 const MyBookmarks = lazy(() => import('../views/MyBookmarks').then(m => ({ default: m.MyBookmarks })));
+const ProfileView = lazy(() => import('../views/ProfileView').then(m => ({ default: m.ProfileView })));
 
 // Layout Wrapper to inject AppShell for authenticated routes
 import { useAuth } from '../contexts/AuthContext';
@@ -134,6 +135,7 @@ export const AppRouter = () => {
               <Route path="/support" element={<SupportTicketView session={session} />} />
               <Route path="/courses/:courseId/certificate" element={<CertificateView session={session} onNavigate={handleNavigate} />} />
               <Route path="/forums" element={<ForumView session={session} onNavigate={handleNavigate} />} />
+              <Route path="/profile" element={<ProfileView />} />
             </Route>
 
             {/* Teacher Routes */}
@@ -141,12 +143,14 @@ export const AppRouter = () => {
               <Route path="/teacher-panel" element={<TeacherDashboard session={session} onNavigate={handleNavigate} />} />
               <Route path="/analytics/teacher" element={<TeacherAnalyticsDashboard />} />
               <Route path="/teacher-panel/grading" element={<TeacherGradingView session={session} onNavigate={handleNavigate} />} />
+              <Route path="/profile" element={<ProfileView />} />
             </Route>
 
             {/* Admin Routes */}
             <Route element={<RoleGuard allowedRoles={['admin']} />}>
               <Route path="/admin" element={<AdminPortal session={session} onSignOut={handleSignOut} />} />
               <Route path="/analytics/admin" element={<AdminAnalyticsDashboard />} />
+              <Route path="/profile" element={<ProfileView />} />
               {/* Other admin routes would go here */}
             </Route>
             

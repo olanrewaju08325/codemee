@@ -14,6 +14,7 @@ import { SystemHealthDashboard } from '../components/admin/SystemHealthDashboard
 import { ErrorTracker } from '../components/admin/ErrorTracker';
 import { IncidentRegister } from '../components/admin/IncidentRegister';
 import { PerformanceMetrics } from '../components/admin/PerformanceMetrics';
+import { AdminCourseManagement } from '../components/admin/AdminCourseManagement';
 
 const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
   <div className={`p-6 rounded-xl border border-[var(--border)] bg-[var(--surface-dark)]`}>
@@ -57,9 +58,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
     <div style={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden', backgroundColor: 'var(--bg-primary)' }}>
       {/* Sidebar */}
       <div style={{ width: '260px', backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid var(--border-default)' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, color: 'var(--text-primary)' }}>ERP Admin Console</h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0' }}>CodeMe Academy</p>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/codeme.jpg" alt="CodeMe Logo" style={{ width: 40, height: 40, borderRadius: '8px', border: '2px solid var(--color-blue)', objectFit: 'contain' }} />
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, color: 'var(--text-primary)' }}>ERP Admin Console</h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0' }}>CodeMe Academy</p>
+          </div>
         </div>
         
         <nav style={{ flex: 1, padding: '16px 8px', overflowY: 'auto' }}>
@@ -155,11 +159,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
             )}
 
             {['courses'].includes(activeTab) && (
-              <div style={{ textAlign: 'center', padding: '64px', color: 'var(--text-secondary)' }}>
-                <Settings size={48} style={{ opacity: 0.3, margin: '0 auto 16px' }} />
-                <h3>Module under construction</h3>
-                <p>This section is being wired into the ERP backbone.</p>
-              </div>
+              <AdminCourseManagement />
             )}
           </div>
         </div>

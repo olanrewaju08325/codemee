@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, Edit, Ban } from "lucide-react";
-import { supabase } from "../../supabaseClient";
+import apiClient from "../../apiClient";
 
 export const UserManagementTable = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -9,12 +9,9 @@ export const UserManagementTable = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/users`, {
-          headers: { "Authorization": `Bearer ${session?.access_token}` }
-        });
-        if (res.ok) {
-          setUsers(await res.json());
+        const data = await apiClient.admin.getUsers();
+        if (data) {
+          setUsers(data);
         }
       } catch (e) {
         console.error("Failed to fetch users", e);

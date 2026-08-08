@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Check, X, FileText } from "lucide-react";
-import { supabase } from "../../supabaseClient";
+import apiClient from "../../apiClient";
 
 export const PaymentVerificationQueue = () => {
   const [payments, setPayments] = useState<any[]>([]);
@@ -9,13 +9,8 @@ export const PaymentVerificationQueue = () => {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/payments/pending`, {
-          headers: { "Authorization": `Bearer ${session?.access_token}` }
-        });
-        if (res.ok) {
-          setPayments(await res.json());
-        }
+        const data = await apiClient.admin.getPendingPayments();
+        if (data) setPayments(data);
       } catch (e) {
         console.error("Failed to fetch pending payments", e);
       }

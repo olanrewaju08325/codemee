@@ -91,14 +91,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
         setAllCourses(coursesData);
         // Check if student dashboard has completed onboarding
         try {
-          const dashRes = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/student/dashboard`, {
-            headers: { 'Authorization': `Bearer ${session.access_token}` }
-          });
-          if (dashRes.ok) {
-            const dashData = await dashRes.json();
-            if (dashData.has_completed_onboarding === false) {
-              setShowOnboarding(true);
-            }
+          const dashData = await apiClient.student.getDashboard();
+          if (dashData && dashData.has_completed_onboarding === false) {
+            setShowOnboarding(true);
           }
         } catch (e) {
           console.error("Dashboard api error", e);
