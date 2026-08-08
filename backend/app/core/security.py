@@ -94,7 +94,8 @@ def require_role(allowed_roles: list[str]):
     Dependency factory to check if the user has an allowed role.
     """
     async def role_checker(user_data: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
-        if user_data.get("role") not in allowed_roles:
+        user_role = (user_data.get("role") or "").lower()
+        if user_role not in [r.lower() for r in allowed_roles]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have permission to perform this action."

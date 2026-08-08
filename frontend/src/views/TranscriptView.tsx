@@ -60,7 +60,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ session }) => {
             </div>
             <div style={{ textAlign: 'right' }}>
               <p style={{ margin: 0, fontSize: '12px', color: '#555' }}>Issued: {new Date().toLocaleDateString()}</p>
-              <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#555' }}>Verification ID: TR-{Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
+              <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#555' }}>Verification is available through the student's issued certificate records.</p>
             </div>
           </div>
 

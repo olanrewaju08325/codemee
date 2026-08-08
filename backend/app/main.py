@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine
-from app.routers import auth, enrollment, courses, quizzes, certificates, forum, lessons, payments, announcements, admin, notifications, push, cron, ai, analytics, health, audit_logs, database, student_dashboard, teacher_dashboard, teacher_ai, admin_dashboard, admin_users, admin_courses, admin_payments, admin_system, admin_monitoring
+from app.routers import auth, enrollment, courses, quizzes, certificates, forum, lessons, payments, announcements, admin, notifications, push, cron, ai, analytics, health, audit_logs, database, student_dashboard, teacher_dashboard, teacher_ai, admin_dashboard, admin_users, admin_courses, admin_payments, admin_system, admin_monitoring, commerce, support, admin_staff
 import logging
 
 # Configure production-ready logging
@@ -58,8 +58,10 @@ app.include_router(ai.router, prefix="/api", tags=["AI"])
 app.include_router(analytics.router, prefix="/api", tags=["Analytics"])
 app.include_router(audit_logs.router)
 app.include_router(database.router)
-from app.routers import admin_batches
+from app.routers import admin_batches, admin_settings, student_certificates
 app.include_router(admin_batches.router)
+app.include_router(admin_settings.router)
+app.include_router(student_certificates.router)
 app.include_router(student_dashboard.router)
 app.include_router(teacher_dashboard.router)
 app.include_router(teacher_ai.router)
@@ -69,6 +71,9 @@ app.include_router(admin_courses.router)
 app.include_router(admin_payments.router)
 app.include_router(admin_system.router)
 app.include_router(admin_monitoring.router)
+app.include_router(commerce.router, prefix="/api")
+app.include_router(support.router, prefix="/api")
+app.include_router(admin_staff.router)
 
 @app.on_event("startup")
 async def startup():

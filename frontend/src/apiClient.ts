@@ -465,6 +465,27 @@ export const adminAPI = {
     return response.json();
   },
 
+  getDashboardMetrics: async () => {
+    const response = await authenticatedFetch('/api/admin/dashboard/');
+    if (!response.ok) throw new Error('Failed to fetch dashboard metrics');
+    return response.json();
+  },
+
+  getAllSettings: async () => {
+    const response = await authenticatedFetch('/api/admin/settings/');
+    if (!response.ok) throw new Error('Failed to fetch admin settings');
+    return response.json();
+  },
+
+  updateSetting: async (settingKey: string, data: { setting_value?: string; description?: string }) => {
+    const response = await authenticatedFetch(`/api/admin/settings/${settingKey}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update setting');
+    return response.json();
+  },
+
   updatePayment: async (paymentId: string, data: { status: string; rejection_reason?: string }) => {
     const response = await authenticatedFetch(`/api/admin/payments/${paymentId}`, {
       method: 'PATCH',
@@ -795,7 +816,7 @@ export const pushAPI = {
 // Support / Tickets API
 export const supportAPI = {
   getTickets: async () => {
-    const response = await authenticatedFetch('/api/support/tickets');
+    const response = await authenticatedFetch('/api/support/tickets/me');
     if (!response.ok) throw new Error('Failed to fetch support tickets');
     return response.json();
   },
@@ -807,12 +828,64 @@ export const supportAPI = {
     if (!response.ok) throw new Error('Failed to create ticket');
     return response.json();
   },
-  replyTicket: async (ticketId: string, data: { message: string }) => {
-    const response = await authenticatedFetch(`/api/support/tickets/${ticketId}/reply`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to reply to ticket');
+  getTicketMessages: async (ticketId: string) => {
+    const response = await authenticatedFetch(`/api/support/tickets/${ticketId}/messages`);
+    if (!response.ok) throw new Error('Failed to fetch ticket messages');
+    return response.json();
+  },
+  getStaffTickets: async () => {
+    const response = await authenticatedFetch('/api/support/staff/tickets');
+    if (!response.ok) throw new Error('Failed to fetch support queue');
+    return response.json();
+  },
+};
+
+// Course-fee invoices. This is intentionally separate from quiz-retake payments.
+export const commerceAPI = {
+  getPaymentMethods: async () => {
+    const response = await authenticatedFetch('/api/commerce/payment-methods');
+    if (!response.ok) throw new Error('Failed to fetch payment methods');
+    return response.json();
+  },
+  getMyInvoices: async () => {
+    const response = await authenticatedFetch('/api/commerce/invoices/me');
+    if (!response.ok) throw new Error('Failed to fetch invoices');
+    return response.json();
+  },
+  submitInvoicePayment: async (invoiceId: string, data: { payment_method_id: string; payer_name: string; amount_claimed: number; transfer_reference: string; receipt_storage_path: string }) => {
+    const response = await authenticatedFetch(`/api/commerce/invoices/${invoiceId}/submissions`, { method: 'POST', body: JSON.stringify(data) });
+    if (!response.ok) throw new Error('Failed to submit payment proof');
+    return response.json();
+  },
+  uploadReceipt: async (file: File) => {
+    const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowed.includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Upload a JPG, PNG, or PDF receipt no larger than 5 MB.');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Sign in again before uploading a receipt.');
+    const extension = file.name.split('.').pop()?.toLowerCase() || 'bin';
+    const path = `${user.id}/${crypto.randomUUID()}.${extension}`;
+    const { error } = await supabase.storage.from('payment-receipts').upload(path, file, { contentType: file.type, upsert: false });
+    if (error) throw new Error('Receipt upload failed. Please try again.');
+    return `payment-receipts/${path}`;
+  },
+  getPendingSubmissions: async () => {
+    const response = await authenticatedFetch('/api/commerce/admin/submissions');
+    if (!response.ok) throw new Error('Failed to fetch payment queue');
+    return response.json();
+  },
+  getReceiptUrl: async (id: string) => {
+    const response = await authenticatedFetch(`/api/commerce/admin/submissions/${id}/receipt-url`);
+    if (!response.ok) throw new Error('Failed to prepare receipt for viewing');
+    return response.json();
+  },
+  approveSubmission: async (id: string, reason?: string) => {
+    const response = await authenticatedFetch(`/api/commerce/admin/submissions/${id}/approve`, { method: 'POST', body: JSON.stringify({ reason }) });
+    if (!response.ok) throw new Error('Failed to approve payment');
+    return response.json();
+  },
+  rejectSubmission: async (id: string, reason: string) => {
+    const response = await authenticatedFetch(`/api/commerce/admin/submissions/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) });
+    if (!response.ok) throw new Error('Failed to reject payment');
     return response.json();
   },
 };
@@ -895,6 +968,34 @@ export const teacherAPI = {
     if (!response.ok) throw new Error('Failed to fetch AI draft');
     return response.json();
   },
+  getAcademicTickets: async () => {
+    const response = await authenticatedFetch('/api/support/teacher/tickets');
+    if (!response.ok) throw new Error('Failed to fetch academic tickets');
+    return response.json();
+  },
+  replyToAcademicTicket: async (ticketId: string, body: string) => {
+    const response = await authenticatedFetch(`/api/support/teacher/tickets/${ticketId}/reply`, { method: 'POST', body: JSON.stringify({ body }) });
+    if (!response.ok) throw new Error('Failed to reply to academic ticket');
+    return response.json();
+  },
+};
+
+export const instructorQuizAPI = {
+  create: async (data: Record<string, unknown>) => {
+    const response = await authenticatedFetch('/api/admin/quizzes', { method: 'POST', body: JSON.stringify(data) });
+    if (!response.ok) throw new Error('Failed to create assessment');
+    return response.json();
+  },
+  update: async (id: string, data: Record<string, unknown>) => {
+    const response = await authenticatedFetch(`/api/admin/quizzes/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    if (!response.ok) throw new Error('Failed to update assessment');
+    return response.json();
+  },
+  remove: async (id: string) => {
+    const response = await authenticatedFetch(`/api/admin/quizzes/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to delete assessment');
+    return response.json();
+  },
 };
 
 export default {
@@ -909,9 +1010,11 @@ export default {
   announcements: announcementsAPI,
   push: pushAPI,
   support: supportAPI,
+  commerce: commerceAPI,
   ai: aiAPI,
   analytics: analyticsAPI,
   system: systemAPI,
   student: studentAPI,
   teacher: teacherAPI,
+  instructorQuizzes: instructorQuizAPI,
 };

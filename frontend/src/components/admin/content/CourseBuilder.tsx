@@ -37,6 +37,7 @@ export const CourseBuilder: React.FC<CourseBuilderProps> = ({
   const [courseLanguage, setCourseLanguage] = useState('English')
   const [courseLevel, setCourseLevel] = useState('Beginner')
   const [courseDuration, setCourseDuration] = useState('4')
+  const [courseStatus, setCourseStatus] = useState('draft')
 
   useEffect(() => {
     if (!isNew) {
@@ -49,6 +50,7 @@ export const CourseBuilder: React.FC<CourseBuilderProps> = ({
         setCourseLanguage(course.language || 'English')
         setCourseLevel(course.level || 'Beginner')
         setCourseDuration(course.duration_weeks?.toString() || '4')
+        setCourseStatus(course.status || 'draft')
       }
     } else {
       setCourseId('')
@@ -59,6 +61,7 @@ export const CourseBuilder: React.FC<CourseBuilderProps> = ({
       setCourseLanguage('English')
       setCourseLevel('Beginner')
       setCourseDuration('4')
+      setCourseStatus('draft')
     }
   }, [selectedCourseId, isNew, courses])
 
@@ -74,7 +77,8 @@ export const CourseBuilder: React.FC<CourseBuilderProps> = ({
         language: courseLanguage,
         level: courseLevel,
         duration_weeks: parseInt(courseDuration),
-        is_active: true
+        status: courseStatus,
+        is_active: courseStatus === 'active' || courseStatus === 'published'
       }
 
       if (isNew) {
@@ -149,6 +153,18 @@ export const CourseBuilder: React.FC<CourseBuilderProps> = ({
           <label>DURATION (weeks)</label>
           <input type="number" className="input-field" placeholder="4" value={courseDuration} onChange={e => setCourseDuration(e.target.value)} required min="1" />
         </div>
+      </div>
+
+      <div className="form-group" style={{ marginBottom: '16px' }}>
+        <label>Course Status</label>
+        <select className="input-field" value={courseStatus} onChange={e => setCourseStatus(e.target.value)} required>
+          <option value="draft">Draft (Work in Progress)</option>
+          <option value="under_review">Submit for Review</option>
+          <option value="active">Active (Published)</option>
+        </select>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+          When you are done editing, change to "Submit for Review". Admins will publish it to Active.
+        </p>
       </div>
 
       <div style={{ display: 'flex', gap: '10px' }}>

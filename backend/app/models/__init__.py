@@ -11,6 +11,10 @@ from app.models.gamification import Badge, Achievement, UserAchievement
 from app.models.announcement import Announcement
 from app.models.payment import ExamPaymentVerification
 from app.models.push import PushSubscription, NotificationPreference
+from app.models.admin_setting import AdminSetting
+from app.models.batch import Batch, batch_enrollments
+from app.models.commerce import Invoice, PaymentMethod, PaymentSubmission, PaymentVerification
+from app.models.support import SupportTicket, TicketMessage
 
 __all__ = [
     "Profile",
@@ -38,5 +42,14 @@ __all__ = [
     "Announcement",
     "ExamPaymentVerification",
     "PushSubscription",
-    "NotificationPreference"
+    "NotificationPreference",
+    "AdminSetting",
+    "Batch",
+    "batch_enrollments",
+    "Invoice",
+    "PaymentMethod",
+    "PaymentSubmission",
+    "PaymentVerification",
+    "SupportTicket",
+    "TicketMessage"
 ]

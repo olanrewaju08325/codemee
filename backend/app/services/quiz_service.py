@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import selectinload
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from app.models.quiz import Quiz, QuizQuestion, QuizAttempt
 from app.schemas.quiz import (
@@ -52,6 +52,11 @@ def _serialize_quiz(q: Quiz, include_answer: bool = False) -> QuizResponse:
         module_id=str(q.module_id),
         title=q.title,
         scheduled_at=q.scheduled_at,
+        assessment_type=q.assessment_type,
+        opens_at=q.opens_at,
+        closes_at=q.closes_at,
+        duration_minutes=q.duration_minutes,
+        results_released=q.results_released,
         passing_score=q.passing_score,
         max_attempts=q.max_attempts,
         created_at=q.created_at,
@@ -86,6 +91,11 @@ async def get_quizzes_by_module(db: AsyncSession, module_id: str) -> List[QuizRe
             module_id=str(q.module_id),
             title=q.title,
             scheduled_at=q.scheduled_at,
+            assessment_type=q.assessment_type,
+            opens_at=q.opens_at,
+            closes_at=q.closes_at,
+            duration_minutes=q.duration_minutes,
+            results_released=q.results_released,
             passing_score=q.passing_score,
             max_attempts=q.max_attempts,
             created_at=q.created_at
@@ -162,6 +172,11 @@ async def submit_quiz(
     quiz = result.scalar_one_or_none()
     if not quiz:
         raise ValueError("Quiz not found")
+    now = datetime.now(timezone.utc)
+    if quiz.opens_at and now < quiz.opens_at:
+        raise ValueError("This assessment is not open yet")
+    if quiz.closes_at and now > quiz.closes_at:
+        raise ValueError("This assessment window has closed")
 
     result = await db.execute(
         select(QuizQuestion).where(QuizQuestion.quiz_id == quiz_id)
@@ -220,16 +235,10 @@ async def submit_quiz(
 
 async def create_quiz(
     db: AsyncSession,
-    module_id: str,
-    title: str,
-    scheduled_at: Optional[datetime] = None,
+    quiz_data: QuizCreate,
 ) -> QuizResponse:
     """Create a new quiz."""
-    quiz = Quiz(
-        module_id=module_id,
-        title=title,
-        scheduled_at=scheduled_at,
-    )
+    quiz = Quiz(**quiz_data.model_dump())
     db.add(quiz)
     await db.commit()
     await db.refresh(quiz)

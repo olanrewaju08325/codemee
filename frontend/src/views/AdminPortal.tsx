@@ -16,6 +16,8 @@ import { IncidentRegister } from '../components/admin/IncidentRegister';
 import { PerformanceMetrics } from '../components/admin/PerformanceMetrics';
 import { AdminCourseManagement } from '../components/admin/AdminCourseManagement';
 import { AdminEmailSettings } from '../components/admin/AdminEmailSettings';
+import { AdminPlatformSettings } from '../components/admin/AdminPlatformSettings';
+import apiClient from '../apiClient';
 
 const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
   <div className={`p-6 rounded-xl border border-[var(--border)] bg-[var(--surface-dark)]`}>
@@ -38,6 +40,15 @@ interface AdminPortalProps {
 export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [metrics, setMetrics] = useState<any>(null);
+
+  React.useEffect(() => {
+    Promise.all([
+      apiClient.admin.getDashboardMetrics().catch(() => ({})),
+      apiClient.commerce.getPendingSubmissions().catch(() => []),
+      apiClient.support.getStaffTickets().catch(() => [])
+    ]).then(([data, payments, tickets]) => setMetrics({ ...data, pending_course_payments: payments.length, open_support_tickets: tickets.length }));
+  }, []);
 
   const navItems = [
     { id: 'home', label: 'Dashboard Home', icon: Activity },
@@ -123,7 +134,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
         <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             {['settings'].includes(activeTab) && (
-              <AdminEmailSettings />
+              <div className="flex flex-col gap-6">
+                <AdminPlatformSettings />
+                <AdminEmailSettings />
+              </div>
             )}
             
             {activeTab === 'health' && (
@@ -143,10 +157,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
             {activeTab === 'home' && (
               <div>
                 <Grid columns={{ sm: 1, md: 2, lg: 4 }} gap="lg" className="mb-8">
-                  <StatCard title="Total Students" value="1,245" change="+12%" icon={Users} color="blue" />
-                  <StatCard title="Active Courses" value="24" change="+2" icon={BookOpen} color="green" />
-                  <StatCard title="Monthly Revenue" value="$45,200" change="+8.5%" icon={CreditCard} color="purple" />
-                  <StatCard title="System Health" value="99.9%" change="Optimal" icon={Activity} color="emerald" />
+                  <StatCard title="Total Students" value={metrics?.total_students ?? '-'} change="Active Platform Users" icon={Users} color="blue" />
+                  <StatCard title="Active Courses" value={metrics?.courses ?? '-'} change="Published Courses" icon={BookOpen} color="green" />
+                  <StatCard title="Course Payments" value={metrics?.pending_course_payments ?? '-'} change="Awaiting Verification" icon={CreditCard} color="purple" />
+                  <StatCard title="Open Support" value={metrics?.open_support_tickets ?? '-'} change="Needs Response" icon={Users} color="blue" />
+                  <StatCard title="System Health" value={metrics?.database_health ?? '-'} change="Database Status" icon={Activity} color="emerald" />
                 </Grid>
                 {/* Additional dashboard widgets can go here */}
               </div>

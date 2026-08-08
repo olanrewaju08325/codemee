@@ -17,6 +17,12 @@ class Course(Base):
     platform_access_cap = Column(Integer, default=40, nullable=False)
     total_batches = Column(Integer, default=2, nullable=False)
     single_batch_only = Column(Boolean, default=False, nullable=False)
+    # Commercial delivery controls. These are deliberately independent from
+    # legacy capacity fields so a course can be live, self-paced, or hybrid.
+    delivery_mode = Column(String, default="hybrid", nullable=False)
+    payment_required = Column(Boolean, default=True, nullable=False)
+    installments_enabled = Column(Boolean, default=False, nullable=False)
+    access_duration_days = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 class Module(Base):

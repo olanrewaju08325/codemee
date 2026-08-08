@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { supabase } from '../supabaseClient'
+import { coursesAPI } from '../apiClient'
 import {
   Code2, Monitor, Award, ChevronRight, UserPlus,
   Zap, Star, CheckCircle,
@@ -48,13 +48,12 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
 
   useEffect(() => {
     // Fetch live pricing from DB
-    supabase.from('courses').select('id,title,price,currency,level,duration_weeks').then(({ data }) => {
+    coursesAPI.getCourses().then(data => {
       if (data && data.length > 0) {
-        setCourses(prev => prev.map(c => {
-          const live = data.find((d: any) => d.id === c.id)
-          return live ? { ...c, price: live.price, level: live.level, weeks: live.duration_weeks } : c
-        }))
+        setCourses(data)
       }
+    }).catch(err => {
+        console.error("Failed to load courses:", err)
     })
   }, [])
 
@@ -62,6 +61,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
     e.preventDefault()
     setApplyLoading(true)
     try {
+      // In a real scenario, this would use a public endpoint in apiClient
+      // Since it's a landing page and user might not be logged in, we use Supabase direct for now
+      const { supabase } = await import('../supabaseClient')
       const { error } = await supabase.from('enrollment_applications').insert({
         full_name: applyForm.full_name,
         email: applyForm.email,
@@ -346,7 +348,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>COURSE OF INTEREST</label>
                     <select className="input-field" value={applyForm.course_id} onChange={e => setApplyForm(p => ({ ...p, course_id: e.target.value }))}>
-                      {courses.map(c => <option key={c.id} value={c.id}>{c.icon} {c.title} — {c.id === 'wd101' || c.price === 0 ? 'Free' : `₦${c.price.toLocaleString()}`}</option>)}
+                      {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                     </select>
                   </div>
 

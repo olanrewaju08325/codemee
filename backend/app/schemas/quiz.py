@@ -20,6 +20,11 @@ class QuizResponse(BaseModel):
     module_id: str
     title: str
     scheduled_at: Optional[datetime] = None
+    assessment_type: str = "module_quiz"
+    opens_at: Optional[datetime] = None
+    closes_at: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    results_released: bool = True
     passing_score: int
     max_attempts: Optional[int] = None
     created_at: datetime
@@ -57,12 +62,22 @@ class QuizCreate(BaseModel):
     scheduled_at: Optional[datetime] = None
     passing_score: int = 70
     max_attempts: Optional[int] = None
+    assessment_type: str = "module_quiz"
+    opens_at: Optional[datetime] = None
+    closes_at: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    results_released: bool = True
 
 class QuizUpdate(BaseModel):
     title: Optional[str] = None
     scheduled_at: Optional[datetime] = None
     passing_score: Optional[int] = None
     max_attempts: Optional[int] = None
+    assessment_type: Optional[str] = None
+    opens_at: Optional[datetime] = None
+    closes_at: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    results_released: Optional[bool] = None
 
 class QuizQuestionCreate(BaseModel):
     question_text: str

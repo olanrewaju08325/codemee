@@ -21,25 +21,26 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [enrollLoading, setEnrollLoading] = useState(false);
+  const [platformSettings, setPlatformSettings] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         // Fetch specific course data, or filter from all courses
-        const [allCourses, modulesList, progressData, paymentsData] = await Promise.all([
+        const [allCourses, modulesList, progressData, paymentsData, settingsData] = await Promise.all([
           apiClient.courses.getCourses(),
           apiClient.courses.getCourseModules(courseId).catch(() => []),
-          apiClient.courses.getProgress().catch(() => []),
-          apiClient.payments.getMyPayments(courseId).catch(() => [])
+          apiClient.courses.getProgress().catch(() => null),
+          apiClient.payments.getMyPayments(courseId).catch(() => []),
+          apiClient.admin.getAllSettings().catch(() => [])
         ]);
 
         const selectedCourse = allCourses.find((c: any) => c.id === courseId) || null;
         setCourse(selectedCourse);
         setModules(modulesList);
         
-        const myEnrollment = progressData.find((p: any) => p.course_id === courseId);
-        setEnrollment(myEnrollment);
+        setEnrollment(progressData);
 
         // Fetch lessons for curriculum preview
         if (modulesList.length > 0) {
@@ -54,7 +55,10 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
           setPaymentStatus(paymentsData[0]); // latest payment
         }
 
-      } catch (error) {
+        if (settingsData) {
+          setPlatformSettings(settingsData);
+        }
+      } catch (error: any) {
         console.error('Failed to load course details:', error);
       } finally {
         setLoading(false);
@@ -263,14 +267,14 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                         <div style={{ backgroundColor: 'var(--bg-secondary)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)' }}>
                           <h4 style={{ fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-2)' }}>Bank Transfer Details</h4>
-                          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '4px' }}>Bank: <strong style={{ color: 'var(--text-primary)' }}>Guaranty Trust Bank (GTB)</strong></p>
-                          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '4px' }}>Account Name: <strong style={{ color: 'var(--text-primary)' }}>CodeMe Academy Limited</strong></p>
-                          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '4px' }}>Account Number: <strong style={{ color: 'var(--text-primary)' }}>0123456789</strong></p>
+                          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '4px' }}>Bank: <strong style={{ color: 'var(--text-primary)' }}>{platformSettings.find(s => s.setting_key === 'PAYMENT_BANK_NAME')?.setting_value || 'CodeMe Academy Bank'}</strong></p>
+                          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '4px' }}>Account Name: <strong style={{ color: 'var(--text-primary)' }}>{platformSettings.find(s => s.setting_key === 'PAYMENT_ACCOUNT_NAME')?.setting_value || 'CodeMe Academy Limited'}</strong></p>
+                          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '4px' }}>Account Number: <strong style={{ color: 'var(--text-primary)' }}>{platformSettings.find(s => s.setting_key === 'PAYMENT_ACCOUNT_NUMBER')?.setting_value || '0123456789'}</strong></p>
                           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Amount: <strong style={{ color: 'var(--text-primary)' }}>₦{course.price.toLocaleString()}</strong></p>
                         </div>
 
                         <div>
-                          <p style={{ fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>After transferring the funds, upload your receipt here:</p>
+                          <p style={{ fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>{platformSettings.find(s => s.setting_key === 'PAYMENT_INSTRUCTIONS')?.setting_value || 'After transferring the funds, upload your receipt here:'}</p>
                           <Button variant="outline" fullWidth style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }} onClick={handleSimulatePaymentUpload} isLoading={enrollLoading}>
                             <Upload size={16} /> Upload Receipt
                           </Button>

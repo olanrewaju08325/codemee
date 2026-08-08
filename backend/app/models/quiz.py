@@ -12,6 +12,11 @@ class Quiz(Base):
     module_id = Column(UUID(as_uuid=True), nullable=False)  # Foreign key to modules.id
     title = Column(String, nullable=False)
     scheduled_at = Column(DateTime(timezone=True), nullable=True)  # optional exam date/time
+    assessment_type = Column(String, default="module_quiz", nullable=False)
+    opens_at = Column(DateTime(timezone=True), nullable=True)
+    closes_at = Column(DateTime(timezone=True), nullable=True)
+    duration_minutes = Column(Integer, nullable=True)
+    results_released = Column(Boolean, default=True, nullable=False)
     passing_score = Column(Integer, default=70, nullable=False)
     max_attempts = Column(Integer, nullable=True) # null = unlimited
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -46,3 +51,4 @@ class QuizAttempt(Base):
     passed = Column(Boolean, nullable=False)
     attempt_number = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    submitted_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

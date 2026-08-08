@@ -19,9 +19,8 @@ import { LearningProgressWidget } from '../components/dashboard/widgets/Learning
 import { AssignmentsWidget } from '../components/dashboard/widgets/AssignmentsWidget';
 import { QuizzesWidget } from '../components/dashboard/widgets/QuizzesWidget';
 import { CertificatesWidget } from '../components/dashboard/widgets/CertificatesWidget';
-import { PaymentStatusWidget } from '../components/dashboard/widgets/PaymentStatusWidget';
+import { InvoicePaymentWidget } from '../components/dashboard/widgets/InvoicePaymentWidget';
 import { QuickActionsWidget } from '../components/dashboard/widgets/QuickActionsWidget';
-import { RecentActivityWidget } from '../components/dashboard/widgets/RecentActivityWidget';
 import { PersonalizedRecommendationsWidget } from '../components/dashboard/widgets/PersonalizedRecommendationsWidget';
 
 interface DashboardProps {
@@ -47,7 +46,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
   const [assignments, setAssignments] = useState<any[]>([]);
   const [quizAttempts, setQuizAttempts] = useState<any[]>([]);
   const [certificates, setCertificates] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,8 +61,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
           statsData,
           submissionsData,
           quizzesData,
-          certsData,
-          paymentsData
+          certsData
         ] = await Promise.all([
           apiClient.auth.getProfile().catch(() => null),
           apiClient.courses.getProgress().catch(() => []),
@@ -73,8 +70,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
           apiClient.courses.getGamificationStats().catch(() => null),
           apiClient.courses.getSubmissions().catch(() => []),
           apiClient.courses.getQuizAttempts().catch(() => []), // my-attempts
-          apiClient.certificates.getUserCertificates().catch(() => []),
-          apiClient.payments.getMyPayments('wd101').catch(() => []) // Defaulting to wd101 for now
+          apiClient.certificates.getUserCertificates().catch(() => [])
         ]);
         
         let latestAnn = null;
@@ -104,7 +100,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
         setAssignments(submissionsData);
         setQuizAttempts(quizzesData);
         setCertificates(certsData);
-        setPayments(paymentsData);
         setAnnouncement(latestAnn);
         
         setEnrollment({ status: 'active', batch: 1 });
@@ -284,10 +279,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
               {loading ? (
                 <Skeleton height={200} borderRadius="var(--radius-lg)" />
               ) : (
-                <PaymentStatusWidget 
-                  payments={payments}
-                  onUploadReceipt={() => {}}
-                />
+                <InvoicePaymentWidget />
               )}
             </motion.div>
           </Grid>
@@ -324,14 +316,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
                 classes={liveClasses}
                 onViewAll={() => onNavigate('live-classes')}
               />
-            )}
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            {loading ? (
-              <Skeleton height={200} borderRadius="var(--radius-lg)" />
-            ) : (
-              <RecentActivityWidget activities={[]} />
             )}
           </motion.div>
 

@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.permissions import require_teacher_or_admin
+from app.services.course_access_service import require_assignment_teacher, require_course_teacher, require_lesson_teacher, require_live_class_teacher, require_module_teacher
 from app.services.course_service import (
     get_all_courses,
     get_course_by_id,
@@ -277,6 +278,7 @@ async def update_course_endpoint(
     Update an existing course.
     Replaces: ContentManager.tsx lines 137-140
     """
+    await require_course_teacher(db, course_id, user_data)
     course = await update_course(db, course_id, course_data)
     if not course:
         raise HTTPException(
@@ -297,6 +299,7 @@ async def create_module_endpoint(
     Create a new module.
     Replaces: ContentManager.tsx
     """
+    await require_course_teacher(db, module_data.course_id, user_data)
     module = await create_module(db, module_data)
     return module
 
@@ -310,6 +313,7 @@ async def update_module_endpoint(
     """
     Update an existing module.
     """
+    await require_module_teacher(db, module_id, user_data)
     module = await update_module(db, module_id, module_data)
     if not module:
         raise HTTPException(
@@ -327,6 +331,7 @@ async def toggle_module_publish_endpoint(
     """
     Toggle module publish status.
     """
+    await require_module_teacher(db, module_id, user_data)
     module = await toggle_module_publish(db, module_id)
     if not module:
         raise HTTPException(
@@ -344,6 +349,7 @@ async def delete_module_endpoint(
     """
     Delete a module.
     """
+    await require_module_teacher(db, module_id, user_data)
     await delete_module(db, module_id)
     return {"status": "success", "message": "Module deleted"}
 
@@ -359,6 +365,7 @@ async def create_lesson_endpoint(
     Create a new lesson.
     Replaces: ContentManager.tsx
     """
+    await require_module_teacher(db, lesson_data.module_id, user_data)
     lesson = await create_lesson(db, lesson_data)
     return lesson
 
@@ -372,6 +379,7 @@ async def update_lesson_endpoint(
     """
     Update an existing lesson.
     """
+    await require_lesson_teacher(db, lesson_id, user_data)
     lesson = await update_lesson(db, lesson_id, lesson_data)
     if not lesson:
         raise HTTPException(
@@ -389,6 +397,7 @@ async def delete_lesson_endpoint(
     """
     Delete a lesson.
     """
+    await require_lesson_teacher(db, lesson_id, user_data)
     await delete_lesson(db, lesson_id)
     return {"status": "success", "message": "Lesson deleted"}
 
@@ -404,6 +413,7 @@ async def create_assignment_endpoint(
     Create a new assignment.
     Replaces: ContentManager.tsx
     """
+    await require_module_teacher(db, assignment_data.module_id, user_data)
     assignment = await create_assignment(db, assignment_data)
     return assignment
 
@@ -417,6 +427,7 @@ async def update_assignment_endpoint(
     """
     Update an existing assignment.
     """
+    await require_assignment_teacher(db, assignment_id, user_data)
     assignment = await update_assignment(db, assignment_id, assignment_data)
     if not assignment:
         raise HTTPException(
@@ -434,6 +445,7 @@ async def delete_assignment_endpoint(
     """
     Delete an assignment.
     """
+    await require_assignment_teacher(db, assignment_id, user_data)
     await delete_assignment(db, assignment_id)
     return {"status": "success", "message": "Assignment deleted"}
 
@@ -490,6 +502,10 @@ async def create_live_class_endpoint(
     Create a new live class schedule.
     Replaces: ContentManager.tsx
     """
+    if user_data["role"] != "admin" and not class_data.module_id:
+        raise HTTPException(status_code=422, detail="Teachers must attach a live class to a module in an assigned course")
+    if class_data.module_id:
+        await require_module_teacher(db, class_data.module_id, user_data)
     live_class = await create_live_class(db, class_data)
     return live_class
 
@@ -503,6 +519,9 @@ async def update_live_class_endpoint(
     """
     Update an existing live class schedule.
     """
+    await require_live_class_teacher(db, class_id, user_data)
+    if class_data.module_id:
+        await require_module_teacher(db, class_data.module_id, user_data)
     live_class = await update_live_class(db, class_id, class_data)
     if not live_class:
         raise HTTPException(
@@ -520,6 +539,7 @@ async def delete_live_class_endpoint(
     """
     Delete a live class schedule.
     """
+    await require_live_class_teacher(db, class_id, user_data)
     await delete_live_class(db, class_id)
     return {"status": "success", "message": "Live class deleted"}
 

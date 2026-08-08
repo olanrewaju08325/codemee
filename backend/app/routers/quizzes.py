@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.permissions import require_teacher_or_admin
+from app.services.course_access_service import require_module_teacher, require_question_teacher, require_quiz_teacher
 from app.services.quiz_service import (
     get_quizzes_by_module,
     get_quiz_by_id,
@@ -116,6 +117,7 @@ async def get_quiz_detail_admin(
     """
     Get quiz detail with correct answers (for teachers).
     """
+    await require_quiz_teacher(db, quiz_id, user_data)
     quiz = await get_quiz_with_answers(db, quiz_id)
     if not quiz:
         raise HTTPException(
@@ -133,6 +135,7 @@ async def get_all_quiz_attempts_endpoint(
     """
     Get all quiz attempts (for teachers).
     """
+    await require_quiz_teacher(db, quiz_id, user_data)
     attempts = await get_all_quiz_attempts(db, quiz_id)
     return attempts
 
@@ -145,7 +148,8 @@ async def create_quiz_endpoint(
     """
     Create a new quiz.
     """
-    quiz = await create_quiz(db, quiz_data.module_id, quiz_data.title, quiz_data.scheduled_at)
+    await require_module_teacher(db, quiz_data.module_id, user_data)
+    quiz = await create_quiz(db, quiz_data)
     return quiz
 
 @router.patch("/admin/quizzes/{quiz_id}", response_model=QuizResponse)
@@ -158,6 +162,7 @@ async def update_quiz_endpoint(
     """
     Update an existing quiz.
     """
+    await require_quiz_teacher(db, quiz_id, user_data)
     quiz = await update_quiz(db, quiz_id, quiz_data)
     if not quiz:
         raise HTTPException(
@@ -175,6 +180,7 @@ async def delete_quiz_endpoint(
     """
     Delete a quiz.
     """
+    await require_quiz_teacher(db, quiz_id, user_data)
     await delete_quiz(db, quiz_id)
     return {"status": "success", "message": "Quiz deleted"}
 
@@ -188,6 +194,7 @@ async def create_quiz_question_endpoint(
     """
     Create a new quiz question.
     """
+    await require_quiz_teacher(db, quiz_id, user_data)
     question = await create_quiz_question(db, quiz_id, question_data)
     return question
 
@@ -201,6 +208,7 @@ async def update_quiz_question_endpoint(
     """
     Update an existing quiz question.
     """
+    await require_question_teacher(db, question_id, user_data)
     question = await update_quiz_question(db, question_id, question_data)
     if not question:
         raise HTTPException(
@@ -218,5 +226,6 @@ async def delete_quiz_question_endpoint(
     """
     Delete a quiz question.
     """
+    await require_question_teacher(db, question_id, user_data)
     await delete_quiz_question(db, question_id)
     return {"status": "success", "message": "Question deleted"}

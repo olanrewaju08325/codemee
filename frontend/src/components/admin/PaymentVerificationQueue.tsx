@@ -1,64 +1,44 @@
-import { useState, useEffect } from "react";
-import { Check, X, FileText } from "lucide-react";
-import apiClient from "../../apiClient";
+import React, { useEffect, useState } from 'react';
+import { CheckCircle, Eye, Loader2, XCircle } from 'lucide-react';
+import apiClient from '../../apiClient';
 
-export const PaymentVerificationQueue = () => {
+export const PaymentVerificationQueue: React.FC = () => {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<string | null>(null);
+  const [reason, setReason] = useState('');
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        const data = await apiClient.admin.getPendingPayments();
-        if (data) setPayments(data);
-      } catch (e) {
-        console.error("Failed to fetch pending payments", e);
-      }
-      setLoading(false);
-    };
-    fetchPayments();
-  }, []);
-
-  return (
-    <div className="bg-[var(--surface-dark)] border border-[var(--border)] rounded-xl overflow-hidden">
-      <div className="p-4 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface)]">
-        <h3 className="font-bold">Pending Manual Payments</h3>
-      </div>
-      
-      {loading ? (
-        <div className="p-8 text-center text-[var(--muted)]">Loading queue...</div>
-      ) : payments.length === 0 ? (
-        <div className="p-8 text-center text-[var(--muted)]">No pending payments require verification.</div>
-      ) : (
-        <table className="w-full text-sm text-left">
-          <thead className="text-[var(--muted)] bg-[var(--surface)] uppercase border-b border-[var(--border)]">
-            <tr>
-              <th className="px-6 py-3">Reference ID</th>
-              <th className="px-6 py-3">Method</th>
-              <th className="px-6 py-3">Amount</th>
-              <th className="px-6 py-3 text-right">Verification</th>
-            </tr>
-          </thead>
-          <tbody>
-            {payments.map((p) => (
-              <tr key={p.id} className="border-b border-[var(--border)] hover:bg-[var(--surface)]">
-                <td className="px-6 py-4 font-medium flex items-center gap-2"><FileText size={16}/> {p.reference_id}</td>
-                <td className="px-6 py-4 text-[var(--muted)]">{p.method}</td>
-                <td className="px-6 py-4 font-bold text-green-400">{p.amount} {p.currency}</td>
-                <td className="px-6 py-4 text-right flex justify-end gap-2">
-                  <button className="bg-green-500/10 text-green-400 hover:bg-green-500/20 px-3 py-1 rounded flex items-center gap-1 transition-colors">
-                    <Check size={14} /> Approve
-                  </button>
-                  <button className="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1 rounded flex items-center gap-1 transition-colors">
-                    <X size={14} /> Reject
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
+  const load = async () => {
+    setLoading(true); setError(null);
+    try { setPayments(await apiClient.commerce.getPendingSubmissions()); }
+    catch { setError('Unable to load the course-payment verification queue.'); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+  const approve = async (id: string) => { try { await apiClient.commerce.approveSubmission(id); await load(); } catch { setError('Approval failed. Confirm the bank transfer and try again.'); } };
+  const reject = async (id: string) => {
+    if (!reason.trim()) { setError('A rejection reason is required.'); return; }
+    try { await apiClient.commerce.rejectSubmission(id, reason); setRejecting(null); setReason(''); await load(); }
+    catch { setError('Rejection failed. Please try again.'); }
+  };
+  const viewReceipt = async (id: string) => {
+    try { const { url } = await apiClient.commerce.getReceiptUrl(id); window.open(url, '_blank', 'noopener,noreferrer'); }
+    catch { setError('The private receipt link could not be generated.'); }
+  };
+  if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>;
+  return <section className="card" style={{ padding: '24px' }}>
+    <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Course Payment Verification</h2>
+    <p style={{ color: 'var(--text-secondary)', margin: '6px 0 18px' }}>Approve only after confirming the transfer reference and amount in the provider account.</p>
+    {error && <p role="alert" style={{ color: '#F87171', marginBottom: '12px' }}>{error}</p>}
+    {payments.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No course payments are awaiting review.</p> : <div style={{ display: 'grid', gap: '12px' }}>
+      {payments.map(payment => <div key={payment.id} style={{ border: '1px solid var(--border-default)', borderRadius: '10px', padding: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <div><strong>₦{Number(payment.amount_claimed).toLocaleString()}</strong><div style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>Reference: {payment.transfer_reference} · {payment.payer_name}</div></div>
+          <div style={{ display: 'flex', gap: '8px' }}><button className="btn btn-secondary" onClick={() => viewReceipt(payment.id)}><Eye size={15} /> Receipt</button><button className="btn btn-primary" onClick={() => approve(payment.id)}><CheckCircle size={15} /> Approve</button><button className="btn btn-secondary" onClick={() => setRejecting(payment.id)}><XCircle size={15} /> Reject</button></div>
+        </div>
+        {rejecting === payment.id && <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}><input className="input-field" value={reason} onChange={e => setReason(e.target.value)} placeholder="Why is this payment being rejected?" /><button className="btn btn-primary" onClick={() => reject(payment.id)}>Confirm rejection</button></div>}
+      </div>)}
+    </div>}
+  </section>;
 };
-

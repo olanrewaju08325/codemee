@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     SUPABASE_PROJECT_URL: str
     SUPABASE_JWT_SECRET: str
     SUPABASE_SERVICE_ROLE_KEY: str = ""
+    FRONTEND_URL: str = ""
     
     # Web Push (VAPID)
     VAPID_PUBLIC_KEY: str = ""

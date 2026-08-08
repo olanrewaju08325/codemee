@@ -1,14 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-declare const process: {
-  env: {
-    SUPABASE_PROJECT_URL: string;
-    SUPABASE_ANON_KEY: string;
-  }
-}
-
-const supabaseUrl = process.env.SUPABASE_PROJECT_URL || ''
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || ''
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_PROJECT_URL || ''
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || ''
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase URL or Anon Key is missing. Ensure your .env configuration is correct.')

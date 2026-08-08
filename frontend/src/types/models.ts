@@ -35,6 +35,7 @@ export interface Module {
 export interface Course {
   id: string;
   title: string;
+  status?: string;
   description: string;
   price: number;
   currency: string;

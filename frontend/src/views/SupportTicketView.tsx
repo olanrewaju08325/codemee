@@ -9,8 +9,9 @@ interface SupportTicketViewProps {
 export const SupportTicketView: React.FC<SupportTicketViewProps> = ({ session }) => {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [newTicket, setNewTicket] = useState({ title: '', category: 'Technical', description: '', priority: 'Medium' });
+  const [newTicket, setNewTicket] = useState({ title: '', category: 'technical', description: '', priority: 'medium' });
 
   useEffect(() => {
     fetchTickets();
@@ -19,10 +20,12 @@ export const SupportTicketView: React.FC<SupportTicketViewProps> = ({ session })
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.support.getTickets().catch(() => []);
+      setError(null);
+      const data = await apiClient.support.getTickets();
       setTickets(data);
     } catch (err) {
       console.error('Failed to load tickets', err);
+      setError('We could not load your support requests. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -34,13 +37,11 @@ export const SupportTicketView: React.FC<SupportTicketViewProps> = ({ session })
       setLoading(true);
       await apiClient.support.createTicket(newTicket);
       setIsCreating(false);
-      setNewTicket({ title: '', category: 'Technical', description: '', priority: 'Medium' });
+      setNewTicket({ title: '', category: 'technical', description: '', priority: 'medium' });
       await fetchTickets();
     } catch (err) {
       console.error('Error creating ticket', err);
-      // Failsafe UX: Simulate optimistic update if backend isn't ready
-      setTickets([{ ...newTicket, id: Math.random().toString(), status: 'Open', created_at: new Date().toISOString() }, ...tickets]);
-      setIsCreating(false);
+      setError('Your request was not submitted. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -59,6 +60,7 @@ export const SupportTicketView: React.FC<SupportTicketViewProps> = ({ session })
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          {error && <div role="alert" style={{ marginBottom: '16px', padding: '12px', borderRadius: 'var(--radius-md)', color: '#FCA5A5', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>{error}</div>}
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
             <div>
@@ -88,21 +90,21 @@ export const SupportTicketView: React.FC<SupportTicketViewProps> = ({ session })
                   <div>
                     <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', marginBottom: '8px' }}>Category</label>
                     <select value={newTicket.category} onChange={e => setNewTicket({...newTicket, category: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-                      <option>Technical</option>
-                      <option>Payment</option>
-                      <option>Enrollment</option>
-                      <option>Course Access</option>
-                      <option>Assignments</option>
-                      <option>Certificates</option>
-                      <option>Other</option>
+                      <option value="technical">Technical</option>
+                      <option value="payment">Payment</option>
+                      <option value="enrollment">Enrollment</option>
+                      <option value="account">Account</option>
+                      <option value="academic">Academic</option>
+                      <option value="certificate">Certificates</option>
+                      <option value="other">Other</option>
                     </select>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-bold)', marginBottom: '8px' }}>Priority</label>
                     <select value={newTicket.priority} onChange={e => setNewTicket({...newTicket, priority: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-                      <option>Low</option>
-                      <option>Medium</option>
-                      <option>High</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
                     </select>
                   </div>
                 </div>
@@ -128,19 +130,18 @@ export const SupportTicketView: React.FC<SupportTicketViewProps> = ({ session })
                   <p>You have no support tickets.</p>
                 </div>
               ) : (
-                tickets.map((t, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: 'var(--space-4)', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-default)' }}>
+                tickets.map((t) => (
+                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: 'var(--space-4)', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-default)' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', backgroundColor: t.status === 'Open' ? 'rgba(41,214,232,0.1)' : 'rgba(16,185,129,0.1)', color: t.status === 'Open' ? 'var(--color-cyan)' : '#10B981', padding: '2px 8px', borderRadius: '999px' }}>
-                          {t.status || 'Open'}
+                        <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', backgroundColor: t.status === 'open' ? 'rgba(41,214,232,0.1)' : 'rgba(16,185,129,0.1)', color: t.status === 'open' ? 'var(--color-cyan)' : '#10B981', padding: '2px 8px', borderRadius: '999px' }}>
+                          {t.status || 'open'}
                         </span>
                         <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '999px' }}>
                           {t.category}
                         </span>
                       </div>
                       <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--weight-bold)', marginBottom: '4px' }}>{t.title}</h3>
-                      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{t.description?.substring(0, 100)}...</p>
                       <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '12px' }}>
                         Submitted: {new Date(t.created_at).toLocaleString()}
                       </div>
