@@ -139,14 +139,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
   const totalLessons = 12;
   const progressPercent = Math.round((completedCount / totalLessons) * 100);
   
-  const mockDeadlines = [
-    { label: 'Module 1 Quiz', course: 'WD101', due: 'Friday', icon: '📝', color: '#F59E0B' }
-  ];
+  const activeDeadlines = assignments.filter(a => a.due_date && new Date(a.due_date) > new Date()).map(a => ({
+    label: a.assignment_title || 'Pending Assignment',
+    course: 'CodeMe',
+    due: new Date(a.due_date).toLocaleDateString(),
+    icon: '⏳',
+    color: '#F59E0B'
+  }));
 
-  const recommendation = {
+  const recommendation = activeDeadlines.length > 0 ? {
+    title: 'Upcoming Deadline',
+    description: `You have an assignment due soon: ${activeDeadlines[0].label}`,
+    actionLabel: 'Go to Assignments',
+    actionId: 'assignments'
+  } : {
     title: 'Keep up the momentum!',
-    description: 'You are 2 lessons away from completing Module 1.',
-    actionLabel: 'Resume WD101',
+    description: 'You are doing great. Continue your learning journey.',
+    actionLabel: 'Resume Learning',
     actionId: 'resume'
   };
 
@@ -308,7 +317,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
             {loading ? (
               <Skeleton height={180} borderRadius="var(--radius-lg)" />
             ) : (
-              <DeadlinesWidget deadlines={mockDeadlines} />
+              <DeadlinesWidget deadlines={activeDeadlines} />
             )}
           </motion.div>
 

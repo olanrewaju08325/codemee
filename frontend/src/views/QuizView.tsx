@@ -46,8 +46,8 @@ export const QuizView: React.FC<QuizViewProps> = ({ session, quizId, onNavigate 
       try {
         setLoading(true);
         const [quizData, attemptsList, paymentsList] = await Promise.all([
-          apiClient.courses.getQuiz(quizId),
-          apiClient.courses.getQuizAttempts(quizId).catch(() => []),
+          apiClient.quizzes.getQuiz(quizId),
+          apiClient.quizzes.getQuizAttempts(quizId).catch(() => []),
           apiClient.payments.getMyPayments(quizId).catch(() => [])
         ]);
 
@@ -133,7 +133,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ session, quizId, onNavigate 
       setSubmitting(true);
       if (timerRef.current) clearInterval(timerRef.current);
 
-      const res = await apiClient.courses.submitQuiz(quizId, { answers: selectedAnswers });
+      const res = await apiClient.quizzes.submitQuiz(quizId, selectedAnswers);
       setLatestAttempt(res);
       
       // Clear drafts
