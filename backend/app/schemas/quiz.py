@@ -20,6 +20,8 @@ class QuizResponse(BaseModel):
     module_id: str
     title: str
     scheduled_at: Optional[datetime] = None
+    passing_score: int
+    max_attempts: Optional[int] = None
     created_at: datetime
     questions: Optional[List[QuizQuestionResponse]] = None
 
@@ -53,10 +55,14 @@ class QuizCreate(BaseModel):
     module_id: str
     title: str
     scheduled_at: Optional[datetime] = None
+    passing_score: int = 70
+    max_attempts: Optional[int] = None
 
 class QuizUpdate(BaseModel):
     title: Optional[str] = None
     scheduled_at: Optional[datetime] = None
+    passing_score: Optional[int] = None
+    max_attempts: Optional[int] = None
 
 class QuizQuestionCreate(BaseModel):
     question_text: str

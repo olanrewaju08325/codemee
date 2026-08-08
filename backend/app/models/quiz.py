@@ -12,6 +12,8 @@ class Quiz(Base):
     module_id = Column(UUID(as_uuid=True), nullable=False)  # Foreign key to modules.id
     title = Column(String, nullable=False)
     scheduled_at = Column(DateTime(timezone=True), nullable=True)  # optional exam date/time
+    passing_score = Column(Integer, default=70, nullable=False)
+    max_attempts = Column(Integer, nullable=True) # null = unlimited
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships

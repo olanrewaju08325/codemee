@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, HelpCircle, Check, Upload, Loader2, Clock, Flag, X } from 'lucide-react';
+import { ChevronLeft, HelpCircle, Check, Loader2, Clock, Flag, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import apiClient from '../apiClient';
 import { Button } from '../components/ui/Button';
@@ -45,10 +45,9 @@ export const QuizView: React.FC<QuizViewProps> = ({ session, quizId, onNavigate 
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [quizData, attemptsList, paymentsList] = await Promise.all([
+        const [quizData, attemptsList] = await Promise.all([
           apiClient.quizzes.getQuiz(quizId),
-          apiClient.quizzes.getQuizAttempts(quizId).catch(() => []),
-          apiClient.payments.getMyPayments(quizId).catch(() => [])
+          apiClient.quizzes.getQuizAttempts(quizId).catch(() => [])
         ]);
 
         setQuiz(quizData);
@@ -57,14 +56,13 @@ export const QuizView: React.FC<QuizViewProps> = ({ session, quizId, onNavigate 
         // Business Logic for Blocks
         const attemptsTaken = attemptsList.length;
         const hasPassed = attemptsList.some((a: any) => a.passed);
-        const approvedPayments = paymentsList.filter((p: any) => p.status === 'approved').length;
-        const totalAllowed = 1 + (approvedPayments * 2);
+        const totalAllowed = quizData.max_attempts;
 
         if (hasPassed) {
           setIsBlocked(false);
           setLatestAttempt(attemptsList.find((a: any) => a.passed) || attemptsList[attemptsList.length - 1]);
           setActiveStep(2); // Go straight to results if already passed
-        } else if (attemptsTaken >= totalAllowed) {
+        } else if (totalAllowed !== null && attemptsTaken >= totalAllowed) {
           setIsBlocked(true);
         } else {
           // Check local storage for draft
@@ -154,23 +152,6 @@ export const QuizView: React.FC<QuizViewProps> = ({ session, quizId, onNavigate 
     if (!timeRemaining) setTimeRemaining(30 * 60);
   };
 
-  // Payment simulated logic
-  const handlePayment = async () => {
-    try {
-      setSubmitting(true);
-      await apiClient.payments.submitPayment({
-        quiz_id: quizId,
-        receipt_file_path: '/receipts/mock_quiz_receipt.jpg',
-        amount: 25000 // mock price
-      });
-      alert('Receipt uploaded. An admin will review it shortly.');
-      window.location.reload();
-    } catch {
-      alert('Payment submission failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   if (loading) return <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" /></div>;
 
@@ -323,17 +304,18 @@ export const QuizView: React.FC<QuizViewProps> = ({ session, quizId, onNavigate 
 
               {isBlocked ? (
                 <div style={{ backgroundColor: 'var(--bg-primary)', padding: 'var(--space-6)', borderRadius: 'var(--radius-md)' }}>
-                  <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-4)' }}>Unlock Retake</h3>
-                  <Button fullWidth onClick={handlePayment} isLoading={submitting} style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
-                    <Upload size={16} /> Upload Payment Receipt (₦25,000)
-                  </Button>
+                  <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', marginBottom: 'var(--space-4)' }}>Maximum Attempts Reached</h3>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+                    You have reached the maximum number of attempts for this assessment. Please contact your instructor to request an attempt reset.
+                  </p>
+                  <Button variant="outline" fullWidth onClick={() => onNavigate('dashboard')}>Return to Dashboard</Button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-6)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><HelpCircle size={16} /> {questions.length} Questions</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={16} /> 30 Minutes</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={16} /> 80% to Pass</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={16} /> {quiz?.passing_score || 70}% to Pass</div>
                   </div>
                   <Button fullWidth onClick={startQuiz}>Start Assessment</Button>
                 </div>
@@ -357,7 +339,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ session, quizId, onNavigate 
                   {latestAttempt.score}%
                 </div>
                 <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-8)' }}>
-                  {latestAttempt.passed ? 'Excellent work. You have demonstrated mastery of this module.' : 'You did not meet the required 80% passing threshold. Please review the material and try again.'}
+                  {latestAttempt.passed ? 'Excellent work. You have demonstrated mastery of this module.' : `You did not meet the required ${quiz?.passing_score || 70}% passing threshold. Please review the material and try again.`}
                 </p>
 
                 <div style={{ display: 'flex', gap: 'var(--space-4)', justifyContent: 'center' }}>

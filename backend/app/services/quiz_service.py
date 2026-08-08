@@ -17,7 +17,7 @@ from app.schemas.quiz import (
     QuizQuestionUpdate
 )
 
-PASSING_PERCENT = 66
+
 
 def _serialize_options(options: Any) -> Any:
     """Normalise options to JSON (list preferred)."""
@@ -52,6 +52,8 @@ def _serialize_quiz(q: Quiz, include_answer: bool = False) -> QuizResponse:
         module_id=str(q.module_id),
         title=q.title,
         scheduled_at=q.scheduled_at,
+        passing_score=q.passing_score,
+        max_attempts=q.max_attempts,
         created_at=q.created_at,
         questions=questions
     )
@@ -84,6 +86,8 @@ async def get_quizzes_by_module(db: AsyncSession, module_id: str) -> List[QuizRe
             module_id=str(q.module_id),
             title=q.title,
             scheduled_at=q.scheduled_at,
+            passing_score=q.passing_score,
+            max_attempts=q.max_attempts,
             created_at=q.created_at
         )
         for q in quizzes
@@ -153,6 +157,13 @@ async def submit_quiz(
     Replaces: QuizView.tsx lines 128-228
     """
     result = await db.execute(
+        select(Quiz).where(Quiz.id == quiz_id)
+    )
+    quiz = result.scalar_one_or_none()
+    if not quiz:
+        raise ValueError("Quiz not found")
+
+    result = await db.execute(
         select(QuizQuestion).where(QuizQuestion.quiz_id == quiz_id)
     )
     questions = result.scalars().all()
@@ -173,13 +184,17 @@ async def submit_quiz(
 
     total_questions = len(questions)
     score = round((answers_correct / total_questions) * 100) if total_questions else 0
-    passed = score >= PASSING_PERCENT
+    passed = score >= quiz.passing_score
 
     result = await db.execute(
         select(func.count(QuizAttempt.id))
         .where(QuizAttempt.quiz_id == quiz_id)
         .where(QuizAttempt.student_id == user_id)
     )
+    attempt_count = result.scalar() or 0
+    
+    if quiz.max_attempts is not None and attempt_count >= quiz.max_attempts:
+        raise ValueError("Maximum attempts reached for this quiz")
     attempt_count = result.scalar() or 0
 
     attempt = QuizAttempt(
