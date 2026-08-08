@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronLeft, CheckCircle, Circle, LayoutPanelLeft, 
-  PanelRight, Bookmark, StickyNote, Sparkles, Loader2
+  PanelRight, Bookmark, StickyNote, Sparkles, Loader2, Lock
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import apiClient from '../apiClient';
@@ -184,21 +184,27 @@ export const CourseView: React.FC<CourseViewProps> = ({
                         {modLessons.map((l: any) => {
                           const isActive = activeLessonId === l.id;
                           const completed = isCompleted(l.id);
+                          const lessonIndex = lessons.findIndex(x => x.id === l.id);
+                          const isLocked = lessonIndex > 0 && !isCompleted(lessons[lessonIndex - 1].id) && !completed;
+
                           return (
                             <div 
                               key={l.id}
-                              onClick={() => setActiveLessonId(l.id)}
+                              onClick={() => {
+                                if (!isLocked) setActiveLessonId(l.id);
+                              }}
                               style={{ 
                                 display: 'flex', alignItems: 'center', gap: 'var(--space-3)', 
                                 padding: 'var(--space-2) var(--space-3)',
                                 borderRadius: 'var(--radius-md)',
                                 backgroundColor: isActive ? 'var(--color-blue)' : 'transparent',
-                                color: isActive ? 'white' : 'var(--text-secondary)',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
+                                color: isLocked ? 'var(--text-disabled, #9CA3AF)' : isActive ? 'white' : 'var(--text-secondary)',
+                                cursor: isLocked ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.2s ease',
+                                opacity: isLocked ? 0.6 : 1
                               }}
                             >
-                              {completed ? <CheckCircle size={16} color={isActive ? 'white' : '#10B981'} /> : <Circle size={16} />}
+                              {isLocked ? <Lock size={16} /> : completed ? <CheckCircle size={16} color={isActive ? 'white' : '#10B981'} /> : <Circle size={16} />}
                               <span style={{ fontSize: 'var(--text-sm)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</span>
                             </div>
                           );

@@ -450,15 +450,16 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
           <>
             {/* Video Embed */}
             {lesson?.video_url && (
-              <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px', boxShadow: 'var(--shadow-md)' }}>
-                <iframe 
+              <div style={{ position: 'relative', width: '100%', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px', boxShadow: 'var(--shadow-md)', backgroundColor: '#000' }}>
+                <video 
                   src={lesson.video_url} 
-                  title="YouTube video player" 
-                  frameBorder="0" 
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                  allowFullScreen
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                ></iframe>
+                  controls
+                  controlsList="nodownload"
+                  preload="metadata"
+                  style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '70vh' }}
+                >
+                  Your browser does not support the video tag.
+                </video>
               </div>
             )}
 
