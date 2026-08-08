@@ -10,7 +10,7 @@ export const AuditLogs = () => {
     const fetchLogs = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/audit-logs`, {
+        const response = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/audit-logs`, {
           headers: {
             "Authorization": `Bearer ${session?.access_token}`
           }

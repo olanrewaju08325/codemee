@@ -10,7 +10,7 @@ export const InfrastructureHealth = () => {
     const fetchHealth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/health`, {
+        const response = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/health`, {
           headers: {
             "Authorization": `Bearer ${session?.access_token}`
           }

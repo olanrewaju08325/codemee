@@ -10,7 +10,7 @@ export const PaymentVerificationQueue = () => {
     const fetchPayments = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/payments/pending`, {
+        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/payments/pending`, {
           headers: { "Authorization": `Bearer ${session?.access_token}` }
         });
         if (res.ok) {

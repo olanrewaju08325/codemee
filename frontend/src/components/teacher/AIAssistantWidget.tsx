@@ -16,7 +16,7 @@ export const AIAssistantWidget = ({ onSuggest, context }: Props) => {
       const { data: { session } } = await supabase.auth.getSession();
       const prompt = `Generate a ${type} based on: ${context}`;
       
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/teacher/ai/draft`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/teacher/ai/draft`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${session?.access_token}`,

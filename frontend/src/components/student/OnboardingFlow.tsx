@@ -14,7 +14,7 @@ export const OnboardingFlow = ({ onComplete }: Props) => {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      await fetch(`${import.meta.env.VITE_API_URL}/api/student/dashboard/onboarding/complete`, {
+      await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/student/dashboard/onboarding/complete`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${session?.access_token}` }
       });

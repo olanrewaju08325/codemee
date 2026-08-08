@@ -10,7 +10,7 @@ export const ErrorTracker = () => {
     const fetchErrors = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/monitoring/errors`, {
+        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/monitoring/errors`, {
           headers: { "Authorization": `Bearer ${session?.access_token}` }
         });
         if (res.ok) {

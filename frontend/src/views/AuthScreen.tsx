@@ -116,7 +116,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
         </p>
       </div>
 
-      <div ref={formRef} style={{ width: '100%' }}>
+      <div ref={formRef} style={{ width: '100%', maxWidth: '400px', backgroundColor: 'var(--bg-surface)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border-default)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
         {error && (
           <div 
             style={{ 

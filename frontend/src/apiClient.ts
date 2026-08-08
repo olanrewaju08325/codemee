@@ -4,7 +4,7 @@ import { supabase } from './supabaseClient';
 
 // In production (Vercel), prepend the Render backend URL.
 // In development, Vite's proxy handles /api → localhost:8000, so we use '' (empty).
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 // Get the current Supabase session token
 async function getAuthToken(): Promise<string | null> {

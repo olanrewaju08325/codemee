@@ -10,7 +10,7 @@ export const IncidentRegister = () => {
     const fetchIncidents = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/monitoring/incidents`, {
+        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || '')}/api/admin/monitoring/incidents`, {
           headers: { "Authorization": `Bearer ${session?.access_token}` }
         });
         if (res.ok) {
