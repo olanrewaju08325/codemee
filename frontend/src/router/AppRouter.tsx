@@ -100,7 +100,7 @@ export const AppRouter = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingView onNavigateToAuth={() => handleNavigate('auth')} />} />
-        <Route path="/auth" element={<AuthScreen onAuthSuccess={() => {}} />} />
+        <Route path="/auth" element={<AuthScreen onAuthSuccess={() => navigate('/dashboard')} />} />
         <Route path="/reset-password" element={<ResetPasswordView />} />
         <Route path="/verify-certificate" element={<VerifyCertificateView />} />
         <Route path="/design-system" element={<DesignSystemView />} />
