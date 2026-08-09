@@ -26,5 +26,5 @@ class Batch(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     # Relationships
-    course = relationship("Course", back_ref="batches")
+    course = relationship("Course", backref="batches")
     students = relationship("Profile", secondary=batch_enrollments, backref="enrolled_batches")
