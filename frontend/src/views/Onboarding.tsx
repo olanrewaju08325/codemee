@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { gsap } from 'gsap'
 import { User, Award, BookOpen, Check, ArrowRight, Loader2, Code2, Terminal, Rocket, Lightbulb } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 interface OnboardingProps {
   session: any
@@ -12,6 +13,7 @@ interface OnboardingProps {
 }
 
 export const Onboarding: React.FC<OnboardingProps> = ({ session, onComplete }) => {
+  const { refreshProfile } = useAuth()
   const [step, setStep] = useState(1) // 1: Welcome, 2: Name input, 5: Avatar Picker, 3: Show ID, 4: Course Selection
   const [fullName, setFullName] = useState('')
   const [studentId, setStudentId] = useState('')
@@ -118,17 +120,30 @@ export const Onboarding: React.FC<OnboardingProps> = ({ session, onComplete }) =
     try {
       // Auto-enroll via API
       const result = await apiClient.enrollment.autoEnroll('wd101')
-      
+
       if (result.status === 'waitlisted') {
         setWaitlisted(true)
       } else {
-        onComplete()
+        await finishOnboarding()
       }
     } catch (err: any) {
       setError(err.message || 'Error enrolling in course. Please try again.')
     } finally {
       setLoading(false)
     }
+  }
+
+  // Refresh the cached profile BEFORE leaving onboarding. AuthGuard sends any
+  // profile without a full_name back to /onboarding, so without this refresh
+  // the freshly-saved name isn't visible yet and the user loops back to the
+  // "Get Started" screen.
+  const finishOnboarding = async () => {
+    try {
+      await refreshProfile()
+    } catch {
+      /* navigation still proceeds; guard re-checks on next load */
+    }
+    onComplete()
   }
 
   return (
@@ -336,7 +351,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ session, onComplete }) =
                       You have been successfully added to the waitlist. As soon as a new batch opens, our administrator will move you in and activate your learning dashboard.
                     </p>
                   </div>
-                  <button className="btn btn-primary" onClick={onComplete}>
+                  <button className="btn btn-primary" onClick={finishOnboarding}>
                     Proceed to Dashboard <ArrowRight size={18} />
                   </button>
                 </div>

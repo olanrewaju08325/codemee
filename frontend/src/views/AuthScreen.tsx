@@ -7,6 +7,43 @@ interface AuthScreenProps {
   onAuthSuccess: (session: any) => void
 }
 
+// Turn raw Supabase/network errors into calm, actionable guidance so students
+// never see a bare "500 Internal Server Error" or "Failed to fetch".
+const friendlyAuthError = (err: any, view: 'signin' | 'signup' | 'forgot'): string => {
+  const raw = (err?.message || '').toString()
+  const status = err?.status ?? err?.statusCode
+  const lower = raw.toLowerCase()
+
+  // Network / server-down / cold start — no HTTP status or a fetch failure.
+  if (lower.includes('failed to fetch') || lower.includes('networkerror') || lower.includes('load failed')) {
+    return "We couldn't reach the server. It may be waking up after a period of inactivity — please wait a few seconds and try again."
+  }
+
+  // Email delivery / server-side auth config issues (e.g. the recover 500).
+  if (status === 500 || status >= 502) {
+    if (view === 'forgot') {
+      return "We're having trouble sending the reset email right now. Please try again in a moment, or contact support@codemeacademy.com if it keeps happening."
+    }
+    return "The server ran into a problem. Please try again in a moment — if it persists, contact support@codemeacademy.com."
+  }
+
+  // Common, well-understood auth cases get plain-language messages.
+  if (lower.includes('invalid login credentials')) {
+    return "That email or password doesn't match our records. Double-check and try again."
+  }
+  if (lower.includes('email not confirmed')) {
+    return "Please confirm your email first. Check your inbox for the confirmation link we sent."
+  }
+  if (lower.includes('user already registered') || lower.includes('already been registered')) {
+    return "An account with this email already exists. Try signing in instead."
+  }
+  if (lower.includes('rate limit') || status === 429) {
+    return "Too many attempts. Please wait a minute and try again."
+  }
+
+  return raw || 'Something went wrong. Please try again.'
+}
+
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -92,10 +129,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           redirectTo: `${window.location.origin}/#/reset-password`,
         });
         if (resetError) throw resetError
-        setMessage("Password reset instructions have been sent to your email.");
+        setMessage("If an account exists for that email, password reset instructions are on their way. Check your inbox and spam folder.");
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during authentication')
+      setError(friendlyAuthError(err, view))
     } finally {
       setLoading(false)
     }

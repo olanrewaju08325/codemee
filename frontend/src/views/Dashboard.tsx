@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { OnboardingFlow } from '../components/student/OnboardingFlow';
+import { OnboardingFlow, isTourDoneLocally } from '../components/student/OnboardingFlow';
 import apiClient from '../apiClient';
 import { Grid } from '../components/ui/Grid';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -88,7 +88,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
         // Check if student dashboard has completed onboarding
         try {
           const dashData = await apiClient.student.getDashboard();
-          if (dashData && dashData.has_completed_onboarding === false) {
+          // Only show the tour if the backend says it's incomplete AND the user
+          // hasn't already dismissed it locally. The local guard stops the tour
+          // from looping back when the backend flag failed to persist.
+          if (dashData && dashData.has_completed_onboarding === false && !isTourDoneLocally()) {
             setShowOnboarding(true);
           }
         } catch (e) {

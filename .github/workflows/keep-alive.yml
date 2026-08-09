@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Ping API Health Endpoint
         run: |
-          curl -sSf https://codemee-backend.onrender.com/api/v1/health || exit 1
+          curl -sSf https://codemee-backend.onrender.com/api/health || exit 1

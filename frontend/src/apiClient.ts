@@ -12,32 +12,81 @@ async function getAuthToken(): Promise<string | null> {
   return session?.access_token || null;
 }
 
-// Generic authenticated fetch wrapper
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Gateway statuses Render returns while the free-tier service is waking up.
+// These mean the request never reached the app, so retrying is safe.
+const COLD_START_STATUS = new Set([502, 503, 504, 522, 524]);
+
+// Friendly message shown to users when the server can't be reached after
+// retries — never the browser's raw "Failed to fetch".
+export const OFFLINE_MESSAGE =
+  "We couldn't reach the server. It may be waking up after a period of inactivity — please wait a few seconds and try again.";
+
+// Fire-and-forget ping to wake the Render backend as early as possible, so the
+// user's first real action isn't the one that pays the cold-start cost.
+let warmed = false;
+export function warmBackend(): void {
+  if (warmed || !API_BASE_URL) return;
+  warmed = true;
+  fetch(`${API_BASE_URL}/api/health`, { method: 'GET' }).catch(() => {
+    warmed = false; // allow a later retry if this one failed
+  });
+}
+
+// Generic authenticated fetch wrapper.
+// Render's free tier spins the backend down when idle and can take 30-50s to
+// wake, briefly returning 502/503 or dropping the connection. Without this,
+// the first action after idle surfaces as a raw "Failed to fetch". We retry
+// cold-start signatures (network error / gateway 5xx) with backoff and a
+// per-attempt timeout so those requests succeed once the server is awake.
 export async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const token = await getAuthToken();
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  
+
   if (options.headers) {
     const mergedHeaders = new Headers(options.headers);
     mergedHeaders.forEach((value, key) => {
       headers[key] = value;
     });
   }
-  
+
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+
   // Prepend the backend base URL so production calls go to Render, not Vercel
   const fullUrl = `${API_BASE_URL}${url}`;
-  return fetch(fullUrl, {
-    ...options,
-    headers,
-  });
 
+  const maxAttempts = 4;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 35000);
+    try {
+      const res = await fetch(fullUrl, { ...options, headers, signal: controller.signal });
+      clearTimeout(timeout);
+      // Retry only cold-start gateway statuses; real app errors pass through.
+      if (COLD_START_STATUS.has(res.status) && attempt < maxAttempts) {
+        await sleep(attempt * 1500);
+        continue;
+      }
+      return res;
+    } catch (err) {
+      clearTimeout(timeout);
+      // Network error or timeout — the request didn't reach the app, so retry.
+      if (attempt < maxAttempts) {
+        await sleep(attempt * 1500);
+        continue;
+      }
+      throw new Error(OFFLINE_MESSAGE);
+    }
+  }
+
+  // Unreachable, but satisfies the type checker.
+  throw new Error(OFFLINE_MESSAGE);
 }
 
 // Auth & Profile API
