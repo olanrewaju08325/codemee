@@ -174,20 +174,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
         <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
       )}
       <Grid columns={{ sm: 1, md: 1, lg: 3 }} gap="lg">
-        <motion.div variants={itemVariants} style={{ gridColumn: 'span 2' }}>
+        <motion.div variants={itemVariants} className="dash-col-welcome">
           {loading ? (
             <Skeleton height={140} borderRadius="var(--radius-lg)" />
           ) : (
-            <WelcomeWidget 
-              fullName={profile?.full_name} 
-              studentId={profile?.student_id} 
+            <WelcomeWidget
+              fullName={profile?.full_name}
+              studentId={profile?.student_id}
               batchName={enrollment?.status === 'waitlisted' ? 'Waitlisted' : `Batch ${enrollment?.batch || 1}`}
               avatarUrl={profile?.avatar_url}
             />
           )}
         </motion.div>
-        
-        <motion.div variants={itemVariants} style={{ gridColumn: 'span 1' }}>
+
+        <motion.div variants={itemVariants} className="dash-col-side">
           {loading ? (
              <Skeleton height={140} borderRadius="var(--radius-lg)" />
           ) : (
@@ -207,7 +207,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
       <Grid columns={{ sm: 1, md: 2, lg: 4 }} gap="lg">
         
         {/* Main Content Area (Spans 3 columns on large desktop) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', gridColumn: 'span 3' }}>
+        <div className="dash-col-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           
           <Grid columns={{ sm: 1, md: 2, lg: 2 }} gap="lg">
             <motion.div variants={itemVariants}>
@@ -296,7 +296,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
         </div>
 
         {/* Right Rail (Spans 1 column) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', gridColumn: 'span 1' }}>
+        <div className="dash-col-side" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           
           <motion.div variants={itemVariants}>
             {loading ? (

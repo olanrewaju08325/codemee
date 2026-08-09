@@ -19,11 +19,9 @@ export const DesignSystemView = () => {
   const toggleTheme = () => {
     const nextTheme = !isDarkMode;
     setIsDarkMode(nextTheme);
-    const rootEl = document.getElementById('root');
-    if (rootEl) {
-      if (nextTheme) rootEl.setAttribute('data-theme', 'dark');
-      else rootEl.removeAttribute('data-theme');
-    }
+    const rootEl = document.documentElement;
+    if (nextTheme) rootEl.setAttribute('data-theme', 'dark');
+    else rootEl.removeAttribute('data-theme');
     localStorage.setItem('codeme_theme', nextTheme ? 'dark' : 'light');
   };
 

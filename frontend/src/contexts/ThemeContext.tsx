@@ -35,11 +35,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       
       setActualTheme(resolvedTheme);
-      
+
       if (resolvedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
       } else {
         document.documentElement.removeAttribute('data-theme');
+      }
+
+      // Keep the mobile browser/PWA status-bar chrome in sync with the theme.
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) {
+        meta.setAttribute('content', resolvedTheme === 'dark' ? '#0D1117' : '#FFFFFF');
       }
     };
 

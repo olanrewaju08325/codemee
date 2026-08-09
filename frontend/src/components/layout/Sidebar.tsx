@@ -77,8 +77,8 @@ export const Sidebar = ({ isCollapsed, isMobileOpen, onCloseMobile, userRole }: 
   
           <div className="app-sidebar-footer">
             {!isCollapsed && (
-              <div className="px-4 mb-4">
-                <ThemeSwitcher />
+              <div style={{ marginBottom: 'var(--space-3)' }}>
+                <ThemeSwitcher fullWidth />
               </div>
             )}
             <button

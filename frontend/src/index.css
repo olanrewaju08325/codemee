@@ -169,6 +169,10 @@
   /* Minimum comfortable touch target (WCAG 2.5.5) */
   --touch-target: 44px;
 
+  /* Light is the default scheme; the dark block overrides this. Keeps
+     native controls (scrollbars, form fields, date pickers) in sync. */
+  color-scheme: light;
+
   /* 10. PHANTOM-TOKEN COMPATIBILITY LAYER
      The views reference ~15 token names that were never defined, so those
      properties resolved to nothing (transparent backgrounds, invisible text)
@@ -203,7 +207,7 @@
 
 /* In dark mode, "primary" emphasis reads better as the cyan accent.
    Keeping the deep-navy gradient only for large brand surfaces. */
-#root[data-theme="dark"], .theme-dark {
+:root[data-theme="dark"], .theme-dark {
   --primary: var(--color-accent-500);
   --primary-hover: var(--color-accent-600);
 }
@@ -211,7 +215,8 @@
 /* =========================================
    DARK THEME (data-theme="dark")
    ========================================= */
-#root[data-theme="dark"], .theme-dark {
+:root[data-theme="dark"], .theme-dark {
+  color-scheme: dark;
   --bg-app: #0D1117;
   --bg-surface: #161B22;
   --bg-surface-hover: #1C2128;
@@ -298,10 +303,10 @@ a {
 a:hover {
   color: var(--color-primary-600);
 }
-#root[data-theme="dark"] a {
+:root[data-theme="dark"] a {
   color: var(--color-accent-500);
 }
-#root[data-theme="dark"] a:hover {
+:root[data-theme="dark"] a:hover {
   color: var(--color-accent-600);
 }
 
@@ -519,4 +524,16 @@ textarea:focus-visible {
 @media (max-width: 640px) {
   .stack-mobile { flex-direction: column !important; align-items: stretch !important; }
   .stack-mobile > * { width: 100%; }
+}
+
+/* Dashboard grid spans. Inline `grid-column: span N` overflowed on phones and
+   tablets because it ignored the breakpoint. These stay full-width until the
+   desktop grid has enough tracks, then span. */
+.dash-col-welcome,
+.dash-col-main,
+.dash-col-side { grid-column: 1 / -1; }
+@media (min-width: 1024px) {
+  .dash-col-welcome { grid-column: span 2 / span 2; }
+  .dash-col-main { grid-column: span 3 / span 3; }
+  .dash-col-side { grid-column: span 1 / span 1; }
 }

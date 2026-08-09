@@ -5,7 +5,7 @@
     <link rel="icon" type="image/jpeg" href="/codeme.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="codeme-build" content="2026-08-09.3" />
-    <meta name="theme-color" content="#1b1030" />
+    <meta name="theme-color" content="#FFFFFF" />
     <meta name="description" content="The official mobile-first learning app for CodeMe Academy Nigeria." />
     
     <!-- PWA primary details -->
@@ -13,7 +13,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="CodeMe" />
     <link rel="apple-touch-icon" href="/codeme.jpg" />
-    <link rel="manifest" href="/manifest.json" />
+    <!-- The manifest link is injected at build time by vite-plugin-pwa
+         (/manifest.webmanifest). Keeping a second hard-coded link here would
+         win over it and break install with stale values, so it's intentionally
+         omitted. -->
     <meta name="mobile-web-app-capable" content="yes" />
     
     <title>CodeMe Technology Academy — Learn Coding in Nigeria</title>
@@ -25,6 +28,22 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Apply the saved (or system) theme before React mounts to avoid a flash
+      // of the wrong theme. Mirrors the logic in ThemeContext.
+      (function () {
+        try {
+          var saved = localStorage.getItem('codemee_theme') || 'system';
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var dark = saved === 'dark' || (saved === 'system' && prefersDark);
+          if (dark) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', '#0D1117');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
