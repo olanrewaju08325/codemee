@@ -8,7 +8,9 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.ENVIRONMENT == "development",
     future=True,
-    poolclass=NullPool,
+    pool_size=20,
+    max_overflow=10,
+    pool_timeout=30,
     connect_args={
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
