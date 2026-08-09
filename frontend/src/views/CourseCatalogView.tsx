@@ -38,7 +38,7 @@ export const CourseCatalogView: React.FC<CourseCatalogViewProps> = ({ session, o
       }
     };
     fetchCatalog();
-  }, [session]);
+  }, [session?.user?.id]);
 
   const getCourseStatus = (courseId: string) => {
     const enrollment = enrollments.find(e => e.course_id === courseId);

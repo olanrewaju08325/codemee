@@ -32,7 +32,7 @@ export const CommunicationInboxView: React.FC<CommunicationInboxViewProps> = ({ 
       }
     };
     fetchData();
-  }, [session]);
+  }, [session?.user?.id]);
 
   const handleMarkAsRead = async () => {
     try {

@@ -34,7 +34,7 @@ export const AcademicRecordView: React.FC<AcademicRecordViewProps> = ({ session,
       }
     };
     fetchData();
-  }, [session]);
+  }, [session?.user?.id]);
 
   if (loading) return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>

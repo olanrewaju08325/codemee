@@ -43,7 +43,7 @@ export const AssignmentView: React.FC<AssignmentViewProps> = ({ session, assignm
       }
     };
     fetchData();
-  }, [assignmentId, session]);
+  }, [assignmentId, session?.user?.id]);
 
   const handleTextChange = (val: string) => {
     setSubmissionText(val);

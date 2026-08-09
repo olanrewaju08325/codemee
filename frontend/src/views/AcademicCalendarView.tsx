@@ -25,7 +25,7 @@ export const AcademicCalendarView: React.FC<AcademicCalendarViewProps> = ({ sess
       }
     };
     fetchData();
-  }, [session]);
+  }, [session?.user?.id]);
 
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();

@@ -45,7 +45,7 @@ export const CertificateView: React.FC<CertificateViewProps> = ({ session, onNav
       }
     }
     fetchOrGenerateCert()
-  }, [session])
+  }, [session?.user?.id])
 
   useEffect(() => {
     if (!loading && certRef.current) {

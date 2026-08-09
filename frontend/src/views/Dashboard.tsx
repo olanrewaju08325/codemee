@@ -49,8 +49,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
+      const cacheKey = `dashboard_data_${session?.user?.id || 'anon'}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      
+      // 1. Instant load from cache if available
+      if (cached) {
+        try {
+          const data = JSON.parse(cached);
+          setProfile(data.profile);
+          setCompletedCount(data.completedCount);
+          setAllCourses(data.allCourses);
+          setLiveClasses(data.liveClasses);
+          setStats(data.stats);
+          setAssignments(data.assignments);
+          setQuizAttempts(data.quizAttempts);
+          setCertificates(data.certificates);
+          setAnnouncement(data.announcement);
+          setEnrollment(data.enrollment);
+          setShowOnboarding(data.showOnboarding);
+          setLoading(false); // Instant UI render
+        } catch (e) {
+          console.error("Cache read error", e);
+        }
+      } else {
         setLoading(true);
+      }
+
+      // 2. Fetch fresh data in background
+      try {
         setError(null);
         
         const [
@@ -69,50 +95,61 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
           apiClient.courses.getUpcomingClasses(5).catch(() => []),
           apiClient.courses.getGamificationStats().catch(() => null),
           apiClient.courses.getSubmissions().catch(() => []),
-          apiClient.courses.getQuizAttempts().catch(() => []), // my-attempts
+          apiClient.courses.getQuizAttempts().catch(() => []), 
           apiClient.certificates.getUserCertificates().catch(() => [])
         ]);
         
         let latestAnn = null;
-        try {
-          latestAnn = await apiClient.announcements.getLatest();
-        } catch { }
+        try { latestAnn = await apiClient.announcements.getLatest(); } catch { }
 
         if (profileData && statsData) {
           profileData.streak_count = statsData.streak_count;
         }
 
-        setProfile(profileData);
-        setCompletedCount(progressData.length);
-        setAllCourses(coursesData);
         let dashData = null;
-        // Check if student dashboard has completed onboarding
+        let shouldShowOnboarding = false;
         try {
           dashData = await apiClient.student.getDashboard();
-          // Only show the tour if the backend says it's incomplete AND the user
-          // hasn't already dismissed it locally. The local guard stops the tour
-          // from looping back when the backend flag failed to persist.
           if (dashData && dashData.has_completed_onboarding === false && !isTourDoneLocally()) {
-            setShowOnboarding(true);
+            shouldShowOnboarding = true;
           }
         } catch (e) {
           console.error("Dashboard api error", e);
         }
 
         const enrolledIds = dashData?.enrolled_course_ids || [];
-        setLiveClasses(liveClassesData);
-        setStats(statsData);
-        setAssignments(submissionsData);
-        setQuizAttempts(quizzesData);
-        setCertificates(certsData);
-        setAnnouncement(latestAnn);
-        
-        // Remove mock data, use real enrolled course IDs to set enrollment status
-        if (enrolledIds.length > 0) {
-          setEnrollment({ status: 'active', enrolledIds, nextLesson: dashData?.next_recommended_lesson });
-        } else {
-          setEnrollment(null);
-        }
+        const newEnrollment = enrolledIds.length > 0 ? { status: 'active', enrolledIds, nextLesson: dashData?.next_recommended_lesson } : null;
+
+        // Build the fresh data object
+        const freshData = {
+          profile: profileData,
+          completedCount: progressData.length,
+          allCourses: coursesData,
+          liveClasses: liveClassesData,
+          stats: statsData,
+          assignments: submissionsData,
+          quizAttempts: quizzesData,
+          certificates: certsData,
+          announcement: latestAnn,
+          enrollment: newEnrollment,
+          showOnboarding: shouldShowOnboarding
+        };
+
+        // Update state with fresh data
+        setProfile(freshData.profile);
+        setCompletedCount(freshData.completedCount);
+        setAllCourses(freshData.allCourses);
+        setLiveClasses(freshData.liveClasses);
+        setStats(freshData.stats);
+        setAssignments(freshData.assignments);
+        setQuizAttempts(freshData.quizAttempts);
+        setCertificates(freshData.certificates);
+        setAnnouncement(freshData.announcement);
+        setEnrollment(freshData.enrollment);
+        setShowOnboarding(freshData.showOnboarding);
+
+        // Update cache
+        sessionStorage.setItem(cacheKey, JSON.stringify(freshData));
 
       } catch (err: any) {
         console.error('Dashboard fetch error:', err);
@@ -122,7 +159,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
       }
     };
     fetchData();
-  }, [session]);
+  }, [session?.user?.id]);
 
   const handleRetry = () => {
     window.location.reload(); 

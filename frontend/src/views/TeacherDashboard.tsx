@@ -53,7 +53,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ session }) =
 
   useEffect(() => {
     fetchData()
-  }, [session])
+  }, [session?.user?.id])
 
   const fetchData = async () => {
     setLoading(true)

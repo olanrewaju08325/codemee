@@ -65,7 +65,7 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
       }
     };
     fetchData();
-  }, [courseId, session]);
+  }, [courseId, session?.user?.id]);
 
   const handleEnroll = async () => {
     if (!course) return;

@@ -80,7 +80,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ session, quizId, onNavigate 
       }
     };
     fetchData();
-  }, [quizId, session]);
+  }, [quizId, session?.user?.id]);
 
   // Auto Save
   useEffect(() => {

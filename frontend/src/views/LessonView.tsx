@@ -301,7 +301,7 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
 
   useEffect(() => {
     fetchData()
-  }, [lessonId, session])
+  }, [lessonId, session?.user?.id])
 
   const handleMarkCompleted = async () => {
     if (completed) return

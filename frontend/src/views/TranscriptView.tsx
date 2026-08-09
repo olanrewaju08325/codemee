@@ -28,7 +28,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ session }) => {
       }
     };
     fetchData();
-  }, [session]);
+  }, [session?.user?.id]);
 
   if (loading) {
     return <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" /></div>;

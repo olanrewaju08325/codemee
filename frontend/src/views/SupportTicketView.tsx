@@ -15,7 +15,7 @@ export const SupportTicketView: React.FC<SupportTicketViewProps> = ({ session })
 
   useEffect(() => {
     fetchTickets();
-  }, [session]);
+  }, [session?.user?.id]);
 
   const fetchTickets = async () => {
     try {

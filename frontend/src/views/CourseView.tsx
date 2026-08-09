@@ -123,7 +123,7 @@ export const CourseView: React.FC<CourseViewProps> = ({
       }
     };
     fetchData();
-  }, [selectedCourseId, session]);
+  }, [selectedCourseId, session?.user?.id]);
 
   useEffect(() => {
     const fetchLessonDetail = async () => {
