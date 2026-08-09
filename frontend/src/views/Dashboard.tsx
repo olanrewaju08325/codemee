@@ -85,9 +85,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
         setProfile(profileData);
         setCompletedCount(progressData.length);
         setAllCourses(coursesData);
+        let dashData = null;
         // Check if student dashboard has completed onboarding
         try {
-          const dashData = await apiClient.student.getDashboard();
+          dashData = await apiClient.student.getDashboard();
           // Only show the tour if the backend says it's incomplete AND the user
           // hasn't already dismissed it locally. The local guard stops the tour
           // from looping back when the backend flag failed to persist.
@@ -98,6 +99,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
           console.error("Dashboard api error", e);
         }
 
+        const enrolledIds = dashData?.enrolled_course_ids || [];
         setLiveClasses(liveClassesData);
         setStats(statsData);
         setAssignments(submissionsData);
@@ -105,7 +107,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
         setCertificates(certsData);
         setAnnouncement(latestAnn);
         
-        setEnrollment({ status: 'active', batch: 1 });
+        // Remove mock data, use real enrolled course IDs to set enrollment status
+        if (enrolledIds.length > 0) {
+          setEnrollment({ status: 'active', enrolledIds, nextLesson: dashData?.next_recommended_lesson });
+        } else {
+          setEnrollment(null);
+        }
 
       } catch (err: any) {
         console.error('Dashboard fetch error:', err);
@@ -212,31 +219,68 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
         {/* Main Content Area (Spans 3 columns on large desktop) */}
         <div className="dash-col-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           
-          <Grid columns={{ sm: 1, md: 2, lg: 2 }} gap="lg">
+          {!enrollment && !loading ? (
             <motion.div variants={itemVariants}>
-              {loading ? (
-                <Skeleton height={200} borderRadius="var(--radius-lg)" />
-              ) : (
-                <ContinueLearningWidget 
-                  courseName="WD101: Web Development Basics"
-                  lessonName="Introduction to HTML"
-                  progressPercent={progressPercent}
-                  completedLessons={completedCount}
-                  totalLessons={totalLessons}
-                  onResume={() => onNavigate('courses/wd101/learn')}
-                  isWaitlisted={enrollment?.status === 'waitlisted'}
-                />
-              )}
+              <div style={{
+                padding: 'var(--space-8)',
+                background: 'var(--surface-color)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-color)',
+                textAlign: 'center'
+              }}>
+                <h3 style={{ marginBottom: 'var(--space-2)' }}>Welcome to CodeMe Academy!</h3>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+                  You currently don't have access to any active courses. If you recently registered, please wait for an admin to grant you access or assign you to a batch.
+                </p>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => onNavigate('courses')}
+                >
+                  Browse Available Courses
+                </button>
+              </div>
             </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              {loading ? (
-                <Skeleton height={200} borderRadius="var(--radius-lg)" />
-              ) : (
-                <LearningProgressWidget stats={stats} />
-              )}
-            </motion.div>
-          </Grid>
+          ) : (
+            <Grid columns={{ sm: 1, md: 2, lg: 2 }} gap="lg">
+              <motion.div variants={itemVariants}>
+                {loading ? (
+                  <Skeleton height={200} borderRadius="var(--radius-lg)" />
+                ) : enrollment?.nextLesson ? (
+                  <ContinueLearningWidget 
+                    courseName={enrollment.nextLesson.course}
+                    lessonName={enrollment.nextLesson.title}
+                    progressPercent={progressPercent}
+                    completedLessons={completedCount}
+                    totalLessons={totalLessons}
+                    onResume={() => onNavigate(`courses/${enrollment.nextLesson.course_id}/learn`)}
+                    isWaitlisted={enrollment?.status === 'waitlisted'}
+                  />
+                ) : (
+                  <div style={{
+                    padding: 'var(--space-6)',
+                    background: 'var(--surface-color)',
+                    borderRadius: 'var(--radius-lg)',
+                    border: '1px solid var(--border-color)',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    You're all caught up! Browse your courses to find more lessons.
+                  </div>
+                )}
+              </motion.div>
+              
+              <motion.div variants={itemVariants}>
+                {loading ? (
+                  <Skeleton height={200} borderRadius="var(--radius-lg)" />
+                ) : (
+                  <LearningProgressWidget stats={stats} />
+                )}
+              </motion.div>
+            </Grid>
+          )}
 
           {!loading && <PersonalizedRecommendationsWidget recommendation={recommendation} onAction={() => onNavigate('course')} />}
 
@@ -288,13 +332,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
           <motion.div variants={itemVariants}>
             {loading ? (
               <Skeleton height={200} borderRadius="var(--radius-lg)" />
-            ) : (
+            ) : enrollment ? (
               <MyCoursesWidget 
-                courses={allCourses.filter(c => c.id !== 'wd101')}
+                courses={allCourses.filter(c => enrollment.enrolledIds.includes(c.id))}
                 onCourseSelect={(id) => onNavigate(`courses/${id}/learn`)}
                 onBrowseCourses={() => onNavigate('courses')}
               />
-            )}
+            ) : null}
           </motion.div>
         </div>
 

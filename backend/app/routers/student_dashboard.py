@@ -13,7 +13,7 @@ from app.models.profile import Profile
 router = APIRouter(prefix="/api/student/dashboard", tags=["Student Experience"])
 
 
-@router.get("/")
+@router.get("")
 async def get_student_dashboard(
     db: AsyncSession = Depends(get_db),
     user=Depends(require_role(["student"])),
@@ -60,6 +60,7 @@ async def get_student_dashboard(
         "next_recommended_lesson": next_lesson,
         "upcoming_deadlines": [],
         "overall_progress_percentage": None,
+        "enrolled_course_ids": list(enrollments),
     }
 
 
