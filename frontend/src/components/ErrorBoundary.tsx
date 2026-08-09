@@ -23,6 +23,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error in React ErrorBoundary:', error, errorInfo)
+    // A release can replace a lazily-loaded hashed chunk while a tab is open.
+    // Reload once so the browser receives the matching current index and chunks.
+    if (/dynamically imported module|Failed to fetch dynamically imported module/i.test(error.message) && !sessionStorage.getItem('codeme_chunk_reload')) {
+      sessionStorage.setItem('codeme_chunk_reload', '1')
+      window.location.reload()
+    }
   }
 
   public render() {
@@ -43,7 +49,7 @@ export class ErrorBoundary extends Component<Props, State> {
             className="btn btn-primary"
             style={{ padding: '10px 24px', fontSize: '1rem' }}
           >
-            Return to Dashboard
+            Return to CodeMe
           </button>
         </div>
       )

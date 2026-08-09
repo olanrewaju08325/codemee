@@ -136,6 +136,7 @@ export const AppRouter = () => {
               <Route path="/courses/:courseId/certificate" element={<CertificateView session={session} onNavigate={handleNavigate} />} />
               <Route path="/forums" element={<ForumView session={session} onNavigate={handleNavigate} />} />
               <Route path="/profile" element={<ProfileView />} />
+              <Route path="/settings" element={<ProfileView />} />
             </Route>
 
             {/* Teacher Routes */}
@@ -144,6 +145,7 @@ export const AppRouter = () => {
               <Route path="/analytics/teacher" element={<TeacherAnalyticsDashboard />} />
               <Route path="/teacher-panel/grading" element={<TeacherGradingView session={session} onNavigate={handleNavigate} />} />
               <Route path="/profile" element={<ProfileView />} />
+              <Route path="/settings" element={<ProfileView />} />
             </Route>
 
             {/* Admin Routes */}
@@ -151,6 +153,7 @@ export const AppRouter = () => {
               <Route path="/admin" element={<AdminPortal session={session} onSignOut={handleSignOut} />} />
               <Route path="/analytics/admin" element={<AdminAnalyticsDashboard />} />
               <Route path="/profile" element={<ProfileView />} />
+              <Route path="/settings" element={<ProfileView />} />
               {/* Other admin routes would go here */}
             </Route>
             

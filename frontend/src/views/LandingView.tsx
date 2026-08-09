@@ -152,7 +152,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
           <div style={{ marginTop: '28px', display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap' }}>
             {[['Live', 'Cohorts'], ['Self-paced', 'Options'], ['Hybrid', 'Learning'], ['Free', 'to Apply']].map(([val, lbl]) => (
               <div key={lbl} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#fff' }}>{val}</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary)' }}>{val}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{lbl}</div>
               </div>
             ))}

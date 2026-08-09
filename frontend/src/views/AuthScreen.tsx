@@ -102,13 +102,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
   }
 
   return (
-    <div className="full-screen-view theme-dark" style={{ background: 'radial-gradient(circle at center, #1b1030 0%, #07060d 100%)', minHeight: '100%' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '32px' }}>
+    <div className="full-screen-view theme-dark" style={{ background: 'radial-gradient(circle at top, #1b1030 0%, #07060d 68%)', minHeight: '100vh', padding: '32px 20px', justifyContent: 'center', overflowY: 'auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '24px', width: '100%', maxWidth: '400px', alignSelf: 'center' }}>
         <img 
           ref={logoRef}
           src="/codeme.jpg" 
           alt="CodeMe Logo" 
-          className="splash-logo" 
+          style={{ width: '88px', height: '88px', borderRadius: '20px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.16)' }}
         />
         <h2 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.75rem', fontWeight: 800, marginTop: '16px' }} className="gradient-text">
           {view === 'signup' ? 'Join CodeMe' : view === 'signin' ? 'Welcome Back' : 'Reset Password'}
@@ -118,7 +118,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
         </p>
       </div>
 
-      <div ref={formRef} style={{ width: '100%', maxWidth: '400px', backgroundColor: '#12111a', padding: '32px', borderRadius: '16px', border: '1px solid #312e42', boxShadow: '0 8px 32px rgba(0,0,0,0.28)' }}>
+      <div ref={formRef} style={{ width: '100%', maxWidth: '400px', alignSelf: 'center', boxSizing: 'border-box', backgroundColor: '#12111a', padding: 'clamp(20px, 5vw, 32px)', borderRadius: '16px', border: '1px solid #312e42', boxShadow: '0 8px 32px rgba(0,0,0,0.28)' }}>
         {error && (
           <div 
             style={{ 

@@ -6,13 +6,6 @@ export function usePWAInstall() {
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
-    // Register Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
-        console.error('[PWA] Service Worker registration failed:', err)
-      })
-    }
-
     // Listen for browser install prompt
     const handler = (e: Event) => {
       e.preventDefault()
