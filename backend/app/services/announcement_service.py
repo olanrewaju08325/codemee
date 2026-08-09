@@ -40,7 +40,7 @@ async def get_all_announcements(db: AsyncSession) -> List[AnnouncementResponse]:
             title=a.title,
             body=a.body,
             content=a.content,
-            course_id=a.course_id,
+            course_id=str(a.course_id) if a.course_id else None,
             created_by=str(a.created_by),
             created_at=a.created_at
         )
@@ -62,7 +62,7 @@ async def get_latest_announcement(db: AsyncSession) -> Optional[AnnouncementResp
         title=announcement.title,
         body=announcement.body,
         content=announcement.content,
-        course_id=announcement.course_id,
+        course_id=str(announcement.course_id) if announcement.course_id else None,
         created_by=str(announcement.created_by),
         created_at=announcement.created_at
     )

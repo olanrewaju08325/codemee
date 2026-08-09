@@ -74,9 +74,18 @@ async def create_payment(db: AsyncSession, payment_data: PaymentCreate, student_
     return await _build_payment_response(payment, name_map, quiz_map)
 
 async def get_payments_for_student(db: AsyncSession, student_id: str, quiz_id: Optional[str] = None) -> List[PaymentResponse]:
-    query = select(ExamPaymentVerification).where(ExamPaymentVerification.student_id == uuid.UUID(student_id))
+    try:
+        student_uuid = uuid.UUID(student_id)
+    except ValueError:
+        return []
+        
+    query = select(ExamPaymentVerification).where(ExamPaymentVerification.student_id == student_uuid)
     if quiz_id:
-        query = query.where(ExamPaymentVerification.quiz_id == uuid.UUID(quiz_id))
+        try:
+            parsed_quiz_id = uuid.UUID(quiz_id)
+        except ValueError:
+            return []
+        query = query.where(ExamPaymentVerification.quiz_id == parsed_quiz_id)
     
     query = query.order_by(desc(ExamPaymentVerification.created_at))
     result = await db.execute(query)

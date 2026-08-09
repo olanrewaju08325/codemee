@@ -66,7 +66,7 @@ async def get_upcoming_classes(db: AsyncSession, limit: int = 10) -> List[LiveCl
     """Get upcoming live classes."""
     result = await db.execute(
         select(LiveClassSchedule)
-        .where(LiveClassSchedule.scheduled_at > datetime.now())
+        .where(LiveClassSchedule.scheduled_at > func.now())
         .where(LiveClassSchedule.is_active == True)
         .order_by(LiveClassSchedule.scheduled_at)
         .limit(limit)

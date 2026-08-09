@@ -34,10 +34,11 @@ async def get_all_badges(db: AsyncSession) -> List[BadgeResponse]:
 
 async def get_user_achievements(db: AsyncSession, user_id: str) -> List[UserAchievementResponse]:
     """Get all achievements earned by a user."""
+    user_uuid = uuid.UUID(user_id)
     result = await db.execute(
         select(UserAchievement)
         .options(selectinload(UserAchievement.achievement))
-        .where(UserAchievement.user_id == user_id)
+        .where(UserAchievement.user_id == user_uuid)
         .order_by(UserAchievement.earned_at.desc())
     )
     user_achievements = result.scalars().all()
@@ -65,9 +66,10 @@ async def get_user_gamification_stats(db: AsyncSession, user_id: str) -> UserGam
     Get comprehensive gamification stats for a user.
     Replaces: Dashboard.tsx lines 83-90
     """
+    user_uuid = uuid.UUID(user_id)
     # Get profile for streak count
     result = await db.execute(
-        select(Profile).where(Profile.id == user_id)
+        select(Profile).where(Profile.id == user_uuid)
     )
     profile = result.scalar_one_or_none()
     
@@ -76,7 +78,7 @@ async def get_user_gamification_stats(db: AsyncSession, user_id: str) -> UserGam
     # Count achievements earned
     result = await db.execute(
         select(func.count(UserAchievement.id))
-        .where(UserAchievement.user_id == user_id)
+        .where(UserAchievement.user_id == user_uuid)
     )
     achievements_count = result.scalar() or 0
     
@@ -84,7 +86,7 @@ async def get_user_gamification_stats(db: AsyncSession, user_id: str) -> UserGam
     result = await db.execute(
         select(UserAchievement)
         .options(selectinload(UserAchievement.achievement))
-        .where(UserAchievement.user_id == user_id)
+        .where(UserAchievement.user_id == user_uuid)
     )
     user_achievements = result.scalars().all()
     
@@ -126,19 +128,22 @@ async def award_achievement(db: AsyncSession, user_id: str, achievement_id: str)
     Award an achievement to a user.
     Replaces: App.tsx lines 210-233
     """
+    user_uuid = uuid.UUID(user_id)
+    ach_uuid = uuid.UUID(achievement_id)
+    
     # Check if already earned
     existing = await db.execute(
         select(UserAchievement)
-        .where(UserAchievement.user_id == user_id)
-        .where(UserAchievement.achievement_id == achievement_id)
+        .where(UserAchievement.user_id == user_uuid)
+        .where(UserAchievement.achievement_id == ach_uuid)
     )
     if existing.scalar_one_or_none():
         raise ValueError("User already has this achievement")
     
     # Create user achievement
     user_achievement = UserAchievement(
-        user_id=user_id,
-        achievement_id=achievement_id
+        user_id=user_uuid,
+        achievement_id=ach_uuid
     )
     db.add(user_achievement)
     await db.commit()
