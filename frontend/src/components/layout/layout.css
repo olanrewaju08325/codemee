@@ -92,7 +92,7 @@
   background-color: var(--color-primary-50);
   color: var(--color-primary-600);
 }
-#root[data-theme="dark"] .sidebar-item.active {
+:root[data-theme="dark"] .sidebar-item.active {
   background-color: var(--color-accent-500);
   color: #000;
 }
@@ -247,6 +247,6 @@
 .bottom-nav-item.active {
   color: var(--color-primary-600);
 }
-#root[data-theme="dark"] .bottom-nav-item.active {
+:root[data-theme="dark"] .bottom-nav-item.active {
   color: var(--color-accent-500);
 }

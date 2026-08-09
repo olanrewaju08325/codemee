@@ -1,5 +1,6 @@
-import { Home, BookOpen, User, Settings, LayoutDashboard, Database, Activity, Download } from 'lucide-react';
+import { Home, BookOpen, User, Settings, LayoutDashboard, Database, Activity, Download, Inbox, Calendar, LifeBuoy, MessagesSquare, ClipboardCheck } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { ThemeSwitcher } from '../ThemeSwitcher';
 
 interface SidebarProps {
@@ -9,22 +10,31 @@ interface SidebarProps {
   userRole?: 'student' | 'teacher' | 'admin';
 }
 
+type NavItem = { id: string; path: string; label: string; icon: ReactNode };
+
 export const Sidebar = ({ isCollapsed, isMobileOpen, onCloseMobile, userRole }: SidebarProps) => {
 
-    const menuItems = {
+    // Only routes that actually exist in AppRouter per role — linking to a
+    // route outside the role would trip the RoleGuard and 403.
+    const menuItems: Record<'student' | 'teacher' | 'admin', NavItem[]> = {
       student: [
-        { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: <Home size={20} /> },
+        { id: 'dashboard', path: '/dashboard', label: 'Today', icon: <Home size={20} /> },
         { id: 'courses', path: '/courses', label: 'My Courses', icon: <BookOpen size={20} /> },
-        { id: 'analytics', path: '/analytics/student', label: 'Analytics', icon: <Activity size={20} /> },
+        { id: 'inbox', path: '/inbox', label: 'Inbox', icon: <Inbox size={20} /> },
+        { id: 'calendar', path: '/calendar', label: 'Calendar', icon: <Calendar size={20} /> },
+        { id: 'forums', path: '/forums', label: 'Community', icon: <MessagesSquare size={20} /> },
+        { id: 'analytics', path: '/analytics/student', label: 'Progress', icon: <Activity size={20} /> },
+        { id: 'support', path: '/support', label: 'Support', icon: <LifeBuoy size={20} /> },
         { id: 'profile', path: '/profile', label: 'Profile', icon: <User size={20} /> },
       ],
       teacher: [
-        { id: 'teacher-panel', path: '/teacher-panel', label: 'Teacher Panel', icon: <LayoutDashboard size={20} /> },
+        { id: 'teacher-panel', path: '/teacher-panel', label: 'Workspace', icon: <LayoutDashboard size={20} /> },
+        { id: 'grading', path: '/teacher-panel/grading', label: 'Grading', icon: <ClipboardCheck size={20} /> },
         { id: 'analytics', path: '/analytics/teacher', label: 'Analytics', icon: <Activity size={20} /> },
         { id: 'profile', path: '/profile', label: 'Profile', icon: <User size={20} /> },
       ],
       admin: [
-        { id: 'admin', path: '/admin', label: 'Admin Portal', icon: <Database size={20} /> },
+        { id: 'admin', path: '/admin', label: 'Command Centre', icon: <Database size={20} /> },
         { id: 'analytics', path: '/analytics/admin', label: 'Executive Analytics', icon: <Activity size={20} /> },
         { id: 'profile', path: '/profile', label: 'Profile', icon: <User size={20} /> },
       ]
@@ -43,7 +53,7 @@ export const Sidebar = ({ isCollapsed, isMobileOpen, onCloseMobile, userRole }: 
         <div className="app-sidebar-header">
           {/* Logo or Brand */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', width: '100%' }}>
-            <img src="/codeme.jpg" alt="CodeMe Logo" style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '2px solid var(--primary)', flexShrink: 0, objectFit: 'contain' }} />
+            <img src="/codeme.jpg" alt="CodeMe Academy" style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '2px solid var(--primary)', flexShrink: 0, objectFit: 'contain' }} />
             {!isCollapsed && (
               <span style={{ fontFamily: 'var(--font-headings)', fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-lg)', color: 'var(--text-primary)' }}>CodeMe</span>
             )}
@@ -67,8 +77,8 @@ export const Sidebar = ({ isCollapsed, isMobileOpen, onCloseMobile, userRole }: 
   
           <div className="app-sidebar-footer">
             {!isCollapsed && (
-              <div className="px-4 mb-4">
-                <ThemeSwitcher />
+              <div style={{ marginBottom: 'var(--space-3)' }}>
+                <ThemeSwitcher fullWidth />
               </div>
             )}
             <button

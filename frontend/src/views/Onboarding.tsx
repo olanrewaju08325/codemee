@@ -3,7 +3,8 @@ import { supabase } from '../supabaseClient'
 import apiClient from '../apiClient'
 import { motion, AnimatePresence } from 'framer-motion'
 import { gsap } from 'gsap'
-import { User, Award, BookOpen, Check, ArrowRight, Loader2 } from 'lucide-react'
+import { User, Award, BookOpen, Check, ArrowRight, Loader2, Code2, Terminal, Rocket, Lightbulb } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 interface OnboardingProps {
   session: any
@@ -20,11 +21,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ session, onComplete }) =
   
   const [selectedAvatar, setSelectedAvatar] = useState('Lagos Developer')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const PRESET_AVATARS = [
-    { name: 'Lagos Developer', emoji: '🇳🇬👨‍💻', color: 'var(--color-blue)' },
-    { name: 'Abuja Coder', emoji: '🇳🇬👩‍💻', color: 'var(--color-cyan)' },
-    { name: 'Ibadan Hacker', emoji: '🇳🇬🚀', color: 'var(--color-purple)' },
-    { name: 'Benin Techie', emoji: '🇳🇬💡', color: '#F59E0B' }
+  const PRESET_AVATARS: { name: string; icon: ReactNode; color: string }[] = [
+    { name: 'Lagos Developer', icon: <Code2 size={30} />, color: 'var(--color-primary-500)' },
+    { name: 'Abuja Coder', icon: <Terminal size={30} />, color: 'var(--color-accent-500)' },
+    { name: 'Ibadan Hacker', icon: <Rocket size={30} />, color: 'var(--color-secondary-500)' },
+    { name: 'Benin Techie', icon: <Lightbulb size={30} />, color: 'var(--color-warning)' }
   ]
   
   const stepContainerRef = useRef<HTMLDivElement>(null)
@@ -222,7 +223,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ session, onComplete }) =
               {/* Presets Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                 {PRESET_AVATARS.map((av) => (
-                  <div 
+                  <div
                     key={av.name}
                     onClick={() => setSelectedAvatar(av.name)}
                     style={{
@@ -235,11 +236,15 @@ export const Onboarding: React.FC<OnboardingProps> = ({ session, onComplete }) =
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '8px',
+                      gap: '10px',
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    <span style={{ fontSize: '2.5rem' }}>{av.emoji}</span>
+                    <span style={{
+                      width: 52, height: 52, borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${av.color}`, color: av.color
+                    }}>{av.icon}</span>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{av.name}</span>
                   </div>
                 ))}

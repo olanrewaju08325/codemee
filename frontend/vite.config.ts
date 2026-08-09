@@ -31,16 +31,25 @@ export default defineConfig(({ mode }) => {
         filename: 'sw.js',
         includeAssets: ['favicon.svg', 'codeme.jpg'],
         manifest: {
-          name: 'CodeMe Academy',
-          short_name: 'CodeMe Academy',
-          description: 'The premium mobile-first learning application for CodeMe Academy.',
-          theme_color: '#07060D',
-          background_color: '#07060D',
+          name: 'CodeMe Technology Academy',
+          short_name: 'CodeMe',
+          description: "Nigeria's premier tech learning academy. Learn HTML, CSS, JavaScript, React, Python, Data Science & more.",
+          theme_color: '#0C4A8C',
+          background_color: '#0C4A8C',
           display: 'standalone',
           display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
           start_url: '/',
+          scope: '/',
+          lang: 'en-NG',
           orientation: 'portrait',
+          categories: ['education', 'productivity'],
           icons: [
+            {
+              src: '/codeme.jpg',
+              sizes: '192x192',
+              type: 'image/jpeg',
+              purpose: 'any'
+            },
             {
               src: '/codeme.jpg',
               sizes: '512x512',
@@ -52,6 +61,20 @@ export default defineConfig(({ mode }) => {
               sizes: '512x512',
               type: 'image/jpeg',
               purpose: 'maskable'
+            }
+          ],
+          shortcuts: [
+            {
+              name: 'My Dashboard',
+              short_name: 'Dashboard',
+              description: 'Go to your learning dashboard',
+              url: '/#/dashboard'
+            },
+            {
+              name: 'My Courses',
+              short_name: 'Courses',
+              description: 'Continue your course',
+              url: '/#/courses'
             }
           ]
         }

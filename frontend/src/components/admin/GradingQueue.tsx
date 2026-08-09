@@ -1,5 +1,5 @@
 import React from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Download, AlertTriangle, Bot } from 'lucide-react'
 
 interface GradingQueueProps {
   gradingQueue: any[];
@@ -48,7 +48,7 @@ const GradingQueue: React.FC<GradingQueueProps> = ({
                     download={sub.submission_file.startsWith('data:text/html') ? 'student_project.html' : 'student_project.zip'}
                     style={{ fontSize: '0.75rem', color: 'var(--color-blue)', fontWeight: 600, textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                   >
-                    📥 Download Submitted File
+                    <Download size={13} /> Download Submitted File
                   </a>
                 </div>
               )}
@@ -100,7 +100,9 @@ const GradingQueue: React.FC<GradingQueueProps> = ({
                 }}
                 disabled={actionLoading}
               >
-                {sub.is_ai_flagged ? '⚠️ AI Flagged (Click to Clear)' : '🤖 Flag for AI Review'}
+                {sub.is_ai_flagged
+                  ? <><AlertTriangle size={14} /> AI Flagged (Click to Clear)</>
+                  : <><Bot size={14} /> Flag for AI Review</>}
               </button>
             </div>
           </div>

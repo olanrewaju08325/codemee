@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import apiClient from '../apiClient'
-import { ChevronLeft, CheckCircle, FileText, Send, Loader2, Play, RotateCcw, Code2, Terminal, Download } from 'lucide-react'
+import { ChevronLeft, CheckCircle, FileText, Send, Loader2, Play, RotateCcw, Code2, Terminal, Download, Lightbulb } from 'lucide-react'
 import { AIChatWidget } from '../components/AIChatWidget'
 
 interface LessonViewProps {
@@ -126,7 +126,7 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
   const loadPyodide = async () => {
     if (pyodideRef.current || pyodideLoading) return
     setPyodideLoading(true)
-    setTerminalOutput([{ type: 'info', text: '⏳ Loading Python runtime (Pyodide)...' }])
+    setTerminalOutput([{ type: 'info', text: 'Loading Python runtime (Pyodide)...' }])
     try {
       // Dynamically load the Pyodide script from CDN
       const script = document.createElement('script')
@@ -140,9 +140,9 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
       const pyodide = await (window as any).loadPyodide()
       pyodideRef.current = pyodide
       setPyodideReady(true)
-      setTerminalOutput([{ type: 'info', text: '✅ Python runtime ready! Click Run to execute your code.' }])
+      setTerminalOutput([{ type: 'info', text: 'Python runtime ready. Click Run to execute your code.' }])
     } catch (e: any) {
-      setTerminalOutput([{ type: 'error', text: `❌ Failed to load Python: ${e.message}` }])
+      setTerminalOutput([{ type: 'error', text: `Failed to load Python: ${e.message}` }])
     } finally {
       setPyodideLoading(false)
     }
@@ -152,7 +152,7 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
   const loadSql = async () => {
     if (sqlDbRef.current || sqlLoading) return
     setSqlLoading(true)
-    setTerminalOutput([{ type: 'info', text: '⏳ Loading SQL engine...' }])
+    setTerminalOutput([{ type: 'info', text: 'Loading SQL engine...' }])
     try {
       const script = document.createElement('script')
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js'
@@ -175,9 +175,9 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
         INSERT INTO students VALUES (5, 'Emeka Eze', 95, 'WD101');`)
       sqlDbRef.current = db
       setSqlReady(true)
-      setTerminalOutput([{ type: 'info', text: '✅ SQL engine ready! A sample "students" table is preloaded. Click Run.' }])
+      setTerminalOutput([{ type: 'info', text: 'SQL engine ready. A sample "students" table is preloaded. Click Run.' }])
     } catch (e: any) {
-      setTerminalOutput([{ type: 'error', text: `❌ Failed to load SQL engine: ${e.message}` }])
+      setTerminalOutput([{ type: 'error', text: `Failed to load SQL engine: ${e.message}` }])
     } finally {
       setSqlLoading(false)
     }
@@ -601,7 +601,7 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
                         }
                         return (
                           <div key={i} className={`terminal-${line.type}`}>
-                            {line.type === 'error' ? '❌ ' : ''}{line.text}
+                            {line.text}
                           </div>
                         )
                       })}
@@ -612,13 +612,15 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
 
               {/* Load runtime hint */}
               {isPython && !pyodideReady && !pyodideLoading && (
-                <div style={{ marginTop: '8px', padding: '10px 12px', background: 'rgba(55,118,171,0.1)', border: '1px solid rgba(55,118,171,0.3)', borderRadius: '8px', fontSize: '0.75rem', color: '#93C5FD' }}>
-                  💡 Python runs fully in your browser via Pyodide. Click <strong>Run</strong> to load it (first load ~5s).
+                <div style={{ marginTop: '8px', padding: '10px 12px', background: 'rgba(55,118,171,0.1)', border: '1px solid rgba(55,118,171,0.3)', borderRadius: '8px', fontSize: '0.75rem', color: '#93C5FD', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <Lightbulb size={15} style={{ flexShrink: 0, marginTop: '1px' }} />
+                  <span>Python runs fully in your browser via Pyodide. Click <strong>Run</strong> to load it (first load ~5s).</span>
                 </div>
               )}
               {isSQL && !sqlReady && !sqlLoading && (
-                <div style={{ marginTop: '8px', padding: '10px 12px', background: 'rgba(51,103,145,0.1)', border: '1px solid rgba(51,103,145,0.3)', borderRadius: '8px', fontSize: '0.75rem', color: '#93C5FD' }}>
-                  💡 SQL runs in your browser via sql.js. A "students" practice table is preloaded. Click <strong>Run</strong>.
+                <div style={{ marginTop: '8px', padding: '10px 12px', background: 'rgba(51,103,145,0.1)', border: '1px solid rgba(51,103,145,0.3)', borderRadius: '8px', fontSize: '0.75rem', color: '#93C5FD', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <Lightbulb size={15} style={{ flexShrink: 0, marginTop: '1px' }} />
+                  <span>SQL runs in your browser via sql.js. A "students" practice table is preloaded. Click <strong>Run</strong>.</span>
                 </div>
               )}
             </div>
@@ -707,7 +709,7 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
                       rel="noopener noreferrer"
                       style={{ fontSize: '0.75rem', color: 'var(--color-blue)', fontWeight: 600, textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                     >
-                      📥 Download Submitted File
+                      <Download size={13} /> Download Submitted File
                     </a>
                   </div>
                 )}

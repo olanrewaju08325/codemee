@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, BookOpen, CreditCard, Settings, FileText, Activity, ShieldCheck, LogOut, ChevronLeft, Zap, XCircle, Shield, Database } from 'lucide-react';
+import { Users, BookOpen, CreditCard, Settings, FileText, Activity, ShieldCheck, LogOut, ChevronLeft, Zap, XCircle, Shield, Database, Gauge } from 'lucide-react';
 import { InfrastructureHealth } from './InfrastructureHealth';
 import { DatabaseHealth } from '../components/admin/DatabaseHealth';
 import { ContentVersionHistory } from '../components/admin/ContentVersionHistory';
@@ -17,6 +17,7 @@ import { PerformanceMetrics } from '../components/admin/PerformanceMetrics';
 import { AdminCourseManagement } from '../components/admin/AdminCourseManagement';
 import { AdminEmailSettings } from '../components/admin/AdminEmailSettings';
 import { AdminPlatformSettings } from '../components/admin/AdminPlatformSettings';
+import { AdminUsagePanel } from '../components/admin/AdminUsagePanel';
 import apiClient from '../apiClient';
 
 const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
@@ -56,6 +57,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
     { id: 'teachers', label: 'Teachers', icon: ShieldCheck },
     { id: 'courses', label: 'Courses & Batches', icon: BookOpen },
     { id: 'finance', label: 'Financials', icon: CreditCard },
+    { id: 'usage', label: 'AI & Email Usage', icon: Gauge },
     { id: 'logs', label: 'Audit Logs', icon: FileText },
     { id: 'health', label: 'System Health', icon: Activity },
     { id: 'infrastructure', label: 'Infrastructure', icon: Shield },
@@ -171,7 +173,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
             {activeTab === 'teachers' && <UserManagementTable />}
             
             {activeTab === 'finance' && <PaymentVerificationQueue />}
-            
+
+            {activeTab === 'usage' && <AdminUsagePanel />}
+
             {activeTab === 'logs' && <AuditLogViewer />}
             
             {activeTab === 'analytics' && (

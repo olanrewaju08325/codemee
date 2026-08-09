@@ -179,9 +179,9 @@ async def create_student_account(
         msg += " (enrolled in WhatsApp group, waiting for platform access)"
         
     try:
-        from app.services.email_service import send_email
+        from app.services.email_service import send_email_tracked
         body = f"Welcome to CodeMe Academy!\n\nYour account has been created.\nYour Student ID is: {student_id}\n\n{msg}"
-        send_email(email, "Welcome to CodeMe Academy", body, is_html=False)
+        await send_email_tracked(db, email, "Welcome to CodeMe Academy", body, is_html=False, category="welcome")
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Failed to send welcome email: {e}")

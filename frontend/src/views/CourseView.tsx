@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronLeft, CheckCircle, Circle, LayoutPanelLeft, 
-  PanelRight, Bookmark, StickyNote, Sparkles, Loader2, Lock
+import {
+  ChevronLeft, CheckCircle, Circle, LayoutPanelLeft,
+  PanelRight, Bookmark, StickyNote, Sparkles, Loader2, Lock,
+  DownloadCloud, Check, WifiOff
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import apiClient from '../apiClient';
 import { Button } from '../components/ui/Button';
+import {
+  downloadCourse, getOfflineCourse, isCourseDownloaded,
+  removeOfflineCourse, isDownloadableMedia
+} from '../services/offlineLibrary';
 
 interface CourseViewProps {
   session: any;
@@ -34,6 +39,26 @@ export const CourseView: React.FC<CourseViewProps> = ({
   // Local storage states
   const [notes, setNotes] = useState<string>('');
   const [bookmarks, setBookmarks] = useState<string[]>([]);
+
+  // Offline library state
+  const [downloaded, setDownloaded] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+
+  useEffect(() => {
+    isCourseDownloaded(selectedCourseId).then(setDownloaded);
+  }, [selectedCourseId]);
 
   useEffect(() => {
     // Load local storage data
@@ -79,6 +104,20 @@ export const CourseView: React.FC<CourseViewProps> = ({
         }
       } catch (err) {
         console.error(err);
+        // Network/API failed — fall back to a downloaded copy if we have one.
+        const offline = await getOfflineCourse(selectedCourseId);
+        if (offline) {
+          setModules(offline.modules || []);
+          setLessons(offline.lessons || []);
+          const expanded: Record<string, boolean> = {};
+          (offline.modules || []).forEach((m: any) => { expanded[m.id] = true; });
+          setExpandedModules(expanded);
+          const lastViewed = localStorage.getItem(`codeme_last_lesson_${selectedCourseId}`);
+          setActiveLessonId(
+            (lastViewed && offline.lessons.some((l: any) => l.id === lastViewed) && lastViewed) ||
+            offline.lessons[0]?.id || null
+          );
+        }
       } finally {
         setLoading(false);
       }
@@ -89,6 +128,12 @@ export const CourseView: React.FC<CourseViewProps> = ({
   useEffect(() => {
     const fetchLessonDetail = async () => {
       if (!activeLessonId) return;
+      // Offline copies carry full lesson content already — use it directly.
+      const cached = lessons.find((l) => l.id === activeLessonId);
+      if (isOffline && cached && cached.content) {
+        setActiveLesson(cached);
+        return;
+      }
       try {
         setLessonLoading(true);
         const detail = await apiClient.courses.getLesson(activeLessonId);
@@ -96,12 +141,51 @@ export const CourseView: React.FC<CourseViewProps> = ({
         localStorage.setItem(`codeme_last_lesson_${selectedCourseId}`, activeLessonId);
       } catch (e) {
         console.error(e);
+        if (cached) setActiveLesson(cached);
       } finally {
         setLessonLoading(false);
       }
     };
     fetchLessonDetail();
-  }, [activeLessonId, selectedCourseId]);
+  }, [activeLessonId, selectedCourseId, isOffline]);
+
+  const handleToggleDownload = async () => {
+    if (downloading) return;
+    if (downloaded) {
+      await removeOfflineCourse(selectedCourseId);
+      setDownloaded(false);
+      return;
+    }
+    setDownloading(true);
+    try {
+      // Fetch full content for every lesson so the course reads offline.
+      const fullLessons: any[] = [];
+      for (const l of lessons) {
+        try {
+          fullLessons.push(await apiClient.courses.getLesson(l.id));
+        } catch {
+          fullLessons.push(l);
+        }
+      }
+      const mediaUrls = fullLessons
+        .flatMap((l) => [l.video_url, l.pdf_url])
+        .filter((u): u is string => isDownloadableMedia(u));
+      await downloadCourse({
+        id: selectedCourseId,
+        title: modules[0]?.course_title || selectedCourseId,
+        downloadedAt: Date.now(),
+        modules,
+        lessons: fullLessons,
+        mediaUrls,
+      });
+      setLessons(fullLessons);
+      setDownloaded(true);
+    } catch (e) {
+      console.error('Download failed', e);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const saveNotes = (val: string) => {
     setNotes(val);
@@ -238,6 +322,22 @@ export const CourseView: React.FC<CourseViewProps> = ({
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            {isOffline && (
+              <span title="You are offline — showing downloaded content" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-warning-text)', background: 'var(--color-warning-bg)', padding: '4px 8px', borderRadius: 'var(--radius-full)' }}>
+                <WifiOff size={13} /> <span className="hidden-mobile">Offline</span>
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggleDownload}
+              disabled={downloading || (isOffline && !downloaded)}
+              title={downloaded ? 'Downloaded for offline — tap to remove' : 'Download this course for offline use'}
+              style={{ display: 'flex', alignItems: 'center', gap: '4px', color: downloaded ? 'var(--color-success)' : 'var(--text-secondary)' }}
+            >
+              {downloading ? <Loader2 size={16} className="animate-spin" /> : downloaded ? <Check size={16} /> : <DownloadCloud size={16} />}
+              <span className="hidden-mobile">{downloading ? 'Saving…' : downloaded ? 'Offline' : 'Download'}</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={toggleBookmark} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: bookmarks.includes(activeLessonId || '') ? 'var(--color-blue)' : 'var(--text-secondary)' }}>
               <Bookmark size={16} /> <span className="hidden-mobile">Bookmark</span>
             </Button>
@@ -257,14 +357,25 @@ export const CourseView: React.FC<CourseViewProps> = ({
                 
                 {/* Embedded Video (if any) */}
                 {activeLesson.video_url && (
-                  <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: 'black', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-6)', overflow: 'hidden' }}>
-                    <iframe 
-                      src={activeLesson.video_url} 
-                      style={{ width: '100%', height: '100%', border: 'none' }}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
-                  </div>
+                  isOffline && !isDownloadableMedia(activeLesson.video_url) ? (
+                    <div style={{ width: '100%', aspectRatio: '16/9', background: 'var(--bg-surface-hover)', border: '1px dashed var(--border-default)', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-6)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', textAlign: 'center', padding: 'var(--space-4)' }}>
+                      <WifiOff size={28} style={{ color: 'var(--text-tertiary)' }} />
+                      <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>This video streams online and isn't available offline.<br />The lesson text below is fully available.</p>
+                    </div>
+                  ) : isDownloadableMedia(activeLesson.video_url) ? (
+                    <div style={{ width: '100%', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-6)', overflow: 'hidden', backgroundColor: '#000' }}>
+                      <video src={activeLesson.video_url} controls preload="metadata" style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '70vh' }} />
+                    </div>
+                  ) : (
+                    <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: 'black', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-6)', overflow: 'hidden' }}>
+                      <iframe
+                        src={activeLesson.video_url}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  )
                 )}
 
                 <div className="markdown-body" style={{ color: 'var(--text-primary)', lineHeight: 1.6 }}>

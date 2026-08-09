@@ -967,6 +967,11 @@ export const systemAPI = {
     if (!response.ok) throw new Error('Failed to fetch system audit');
     return response.json();
   },
+  getUsage: async () => {
+    const response = await authenticatedFetch('/api/admin/system/usage');
+    if (!response.ok) throw new Error('Failed to fetch operational usage');
+    return response.json();
+  },
 };
 
 export const studentAPI = {
