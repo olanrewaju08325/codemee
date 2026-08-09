@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient'
 import apiClient from '../apiClient'
 import {
   BookOpen, Users, Bell, CheckSquare, PenTool, Loader2,
-  Video, Send, BarChart2, GraduationCap, Plus, Eye, Clock, Upload, Trash2, Zap, XCircle
+  Video, Send, BarChart2, GraduationCap, Plus, Eye, Clock, Upload, Trash2, Zap, XCircle, Paperclip, Flame
 } from 'lucide-react'
 import { ContentManager } from './ContentManager'
 import { AIChatInterface } from '../components/ui/AIChatInterface'
@@ -416,7 +416,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ session }) =
                 <p><strong>Assignment:</strong> {selectedSubmission.assignments?.title}</p>
                 {selectedSubmission.submission_file && (
                   <a href={selectedSubmission.submission_file} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-blue)', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '6px', fontSize: '0.8rem' }}>
-                    📎 View Submitted File
+                    <Paperclip size={14} /> View Submitted File
                   </a>
                 )}
                 {selectedSubmission.submission_text && (
@@ -568,7 +568,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ session }) =
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: 600, fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{st.full_name}</p>
-                    <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{st.student_id} · 🔥 {st.streak_count || 0} day streak</p>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{st.student_id} · <Flame size={12} style={{ color: 'var(--color-warning)' }} /> {st.streak_count || 0} day streak</p>
                   </div>
                   <span className="badge" style={{ fontSize: '0.65rem', background: enroll.status === 'enrolled' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: enroll.status === 'enrolled' ? '#10B981' : '#EF4444' }}>
                     {enroll.status}
