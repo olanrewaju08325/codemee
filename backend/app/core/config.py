@@ -35,7 +35,13 @@ class Settings(BaseSettings):
     
     @property
     def cors_origins_list(self) -> List[str]:
-        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        origins = [origin.strip().rstrip("/") for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        # Staff invitations already rely on FRONTEND_URL.  Include it here too so
+        # a deployment cannot accidentally block the actual production frontend
+        # when CORS_ORIGINS is omitted or changed in the hosting dashboard.
+        frontend_origin = self.FRONTEND_URL.strip().rstrip("/")
+        if frontend_origin and frontend_origin not in origins:
+            origins.append(frontend_origin)
         return origins
     class Config:
         env_file = ".env"
