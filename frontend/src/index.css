@@ -168,6 +168,37 @@
 
   /* Minimum comfortable touch target (WCAG 2.5.5) */
   --touch-target: 44px;
+
+  /* 10. PHANTOM-TOKEN COMPATIBILITY LAYER
+     The views reference ~15 token names that were never defined, so those
+     properties resolved to nothing (transparent backgrounds, invisible text)
+     — the real cause of the "mixed dark/light / unreadable" panels. Each maps
+     to a real, theme-aware token, so contrast is now correct in BOTH themes
+     everywhere at once, without editing individual files. */
+  --muted: var(--text-secondary);
+  --text-md: var(--text-base);
+  --text-disabled: var(--text-tertiary);
+  --text-6xl: 3.75rem;
+
+  --surface: var(--bg-surface);
+  --surface-default: var(--bg-surface);
+  --surface-hover: var(--bg-surface-hover);
+  --surface-dark: var(--bg-surface-hover);
+  --surface-sunken: var(--bg-surface-active);
+  --bg-primary: var(--bg-app);
+  --bg-secondary: var(--bg-surface-hover);
+  --bg-main: var(--bg-app);
+
+  --border: var(--border-default);
+  --border-color: var(--border-default);
+  --border-subtle: var(--border-light);
+
+  --color-cyan: var(--color-accent-500);
+  --color-purple: var(--color-secondary-500);
+  --color-yellow: var(--color-warning);
+  --color-red: var(--color-danger);
+  --color-green: var(--color-success);
+  --color-danger-subtle: var(--color-danger-bg);
 }
 
 /* In dark mode, "primary" emphasis reads better as the cyan accent.
