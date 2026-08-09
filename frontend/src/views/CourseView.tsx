@@ -313,7 +313,7 @@ export const CourseView: React.FC<CourseViewProps> = ({
               {[
                 { id: 'notes', icon: <StickyNote size={16} />, label: 'Notes' },
                 { id: 'bookmarks', icon: <Bookmark size={16} />, label: 'Saved' },
-                { id: 'ai', icon: <Sparkles size={16} />, label: 'AI Tutor' }
+                { id: 'ai', icon: <Sparkles size={16} />, label: 'CodeMe AI' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -369,7 +369,7 @@ export const CourseView: React.FC<CourseViewProps> = ({
               {activeRightTab === 'ai' && (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'var(--text-secondary)' }}>
                   <Sparkles size={32} style={{ marginBottom: '16px' }} />
-                  <p style={{ fontSize: 'var(--text-sm)' }}>AI Tutor integration is active in the main dashboard.<br/>(Lesson context AI coming in Phase 5)</p>
+                  <p style={{ fontSize: 'var(--text-sm)' }}>CodeMe AI is available from the main dashboard.<br/>Lesson-context help is available where enabled.</p>
                 </div>
               )}
             </div>

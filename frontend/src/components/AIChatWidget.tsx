@@ -16,7 +16,7 @@ export const AIChatWidget: React.FC<AIChatWidgetProps> = ({ currentCode }) => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(true)}
-        title="Open AI Tutor"
+        title="Open CodeMe AI"
         style={{
           position: 'fixed',
           bottom: '24px',
@@ -62,7 +62,7 @@ export const AIChatWidget: React.FC<AIChatWidgetProps> = ({ currentCode }) => {
             <div style={{ padding: '12px 16px', backgroundColor: 'var(--color-purple)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Bot size={20} />
-                <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>AI Tutor</span>
+                <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>CodeMe AI</span>
               </div>
               <button 
                 onClick={() => setIsOpen(false)}

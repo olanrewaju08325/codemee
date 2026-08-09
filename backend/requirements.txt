@@ -14,6 +14,8 @@ pywebpush==1.14.0
 py-vapid==1.9.4
 http-ece==1.2.1
 groq==0.4.2
+# groq 0.4.x passes the deprecated `proxies` argument; it requires httpx 0.27.x.
+httpx==0.27.2
 slowapi==0.1.9
 
 

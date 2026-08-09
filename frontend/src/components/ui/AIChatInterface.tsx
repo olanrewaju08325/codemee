@@ -168,7 +168,7 @@ export const AIChatInterface: React.FC<AIChatInterfaceProps> = ({
           </div>
           <div>
             <h4 style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)" }}>
-              {mode === "tutor" ? "AI Code Tutor" : "AI Assistant"}
+              {mode === "tutor" ? "CodeMe AI" : "CodeMe AI Assistant"}
             </h4>
             {remaining !== null && (
               <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
@@ -222,8 +222,8 @@ export const AIChatInterface: React.FC<AIChatInterfaceProps> = ({
             <Bot size={48} style={{ marginBottom: "var(--space-3)", opacity: 0.5 }} />
             <p style={{ margin: 0, fontSize: "var(--text-sm)" }}>
               {mode === "tutor" 
-                ? "I am your AI tutor. Ask me a question about your code or the lesson, and I will give you a hint!" 
-                : "I am your AI assistant. Tell me what you need to generate."}
+                ? "I am CodeMe AI. Ask me about your code or lesson and I will give you a guided hint."
+                : "I am CodeMe AI. Tell me what you need to generate."}
             </p>
           </div>
         ) : (

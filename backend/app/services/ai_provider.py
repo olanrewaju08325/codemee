@@ -12,7 +12,7 @@ import json
 import random
 
 HINT_ONLY_SYSTEM_PROMPT = (
-    "You are CodeMe Assistant, a coding tutor inside the CodeMe Academy app. "
+    "You are CodeMe AI, a coding tutor inside the CodeMe Academy app. "
     "You guide students toward answers with hints and questions. "
     "CRITICAL RULE: You must ONLY answer questions based on the current lesson context. "
     "If a student asks a general question outside the scope of their provided context, "
@@ -151,7 +151,7 @@ class GroqAIProvider(AIProvider):
         while attempts < max_attempts:
             try:
                 kwargs = {
-                    "model": "llama3-70b-8192",
+                    "model": "llama-3.3-70b-versatile",
                     "messages": messages,
                     "temperature": 0.5,
                 }

@@ -23,7 +23,7 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="CodeMe Academy API",
     description="Backend API for CodeMe Academy learning platform",
-    version="1.0.1"
+    version="1.0.2"
 )
 
 app.state.limiter = limiter

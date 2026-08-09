@@ -17,7 +17,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     """Deployment-safe health signal without exposing secrets or tracebacks."""
     result = {
         "status": "healthy",
-        "version": "1.0.1",
+        "version": "1.0.2",
         "database": "unknown",
         "ai_service": "configured" if settings.AI_PROVIDER != "mock" and settings.GROQ_API_KEYS else "disabled",
         "storage": "configured" if settings.SUPABASE_PROJECT_URL and settings.SUPABASE_SERVICE_ROLE_KEY else "unconfigured",

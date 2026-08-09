@@ -10,7 +10,7 @@ export const QuickActionsWidget = ({ onAction }: QuickActionsWidgetProps) => {
   const actions = [
     { id: 'resume', label: 'Resume Learning', icon: <PlayCircle size={20} />, color: 'var(--color-blue)', bg: 'rgba(12, 74, 140, 0.1)' },
     { id: 'assignments', label: 'View Assignments', icon: <FileText size={20} />, color: 'var(--color-purple)', bg: 'rgba(139, 92, 246, 0.1)' },
-    { id: 'ai_tutor', label: 'Ask AI Tutor', icon: <Zap size={20} />, color: '#EC4899', bg: 'rgba(236, 72, 153, 0.1)' },
+    { id: 'ai_tutor', label: 'Ask CodeMe AI', icon: <Zap size={20} />, color: '#EC4899', bg: 'rgba(236, 72, 153, 0.1)' },
     { id: 'courses', label: 'Browse Courses', icon: <BookOpen size={20} />, color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
   ];
 
