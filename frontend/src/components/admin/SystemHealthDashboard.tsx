@@ -21,7 +21,9 @@ export const SystemHealthDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading || !health) return <div className="p-4 text-[var(--muted)]">Loading telemetry...</div>;
+  if (loading) return <div className="p-4 text-[var(--muted)]">Loading telemetry...</div>;
+  if (!health) return <div className="p-4 text-[var(--muted)]">Telemetry is temporarily unavailable. Core academy functions remain available.</div>;
+  const subsystems = health.subsystems || {};
 
   const SubsystemRow = ({ name, status, icon: Icon }: any) => (
     <div className="flex justify-between items-center p-3 border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface)]">
@@ -45,13 +47,13 @@ export const SystemHealthDashboard = () => {
       </div>
       
       <div className="flex flex-col">
-        <SubsystemRow name="frontend" status={health.subsystems.frontend} icon={Server} />
-        <SubsystemRow name="backend" status={health.subsystems.backend} icon={Server} />
-        <SubsystemRow name="database" status={health.subsystems.database} icon={Database} />
-        <SubsystemRow name="storage" status={health.subsystems.storage} icon={Cloud} />
-        <SubsystemRow name="authentication" status={health.subsystems.authentication} icon={Shield} />
-        <SubsystemRow name="ai_services" status={health.subsystems.ai_services} icon={Activity} />
-        <SubsystemRow name="email_services" status={health.subsystems.email_services} icon={Mail} />
+        <SubsystemRow name="frontend" status={subsystems.frontend || 'Unknown'} icon={Server} />
+        <SubsystemRow name="backend" status={subsystems.backend || 'Unknown'} icon={Server} />
+        <SubsystemRow name="database" status={subsystems.database || 'Unknown'} icon={Database} />
+        <SubsystemRow name="storage" status={subsystems.storage || 'Unknown'} icon={Cloud} />
+        <SubsystemRow name="authentication" status={subsystems.authentication || 'Unknown'} icon={Shield} />
+        <SubsystemRow name="ai_services" status={subsystems.ai_services || 'Unknown'} icon={Activity} />
+        <SubsystemRow name="email_services" status={subsystems.email_services || 'Unknown'} icon={Mail} />
       </div>
     </div>
   );

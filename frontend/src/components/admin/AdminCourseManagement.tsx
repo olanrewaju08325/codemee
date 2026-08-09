@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { adminCourseAPI } from '../../apiClient';
+import { useToast } from '../../contexts/ToastContext';
 import { BookOpen, Edit, Plus, Eye, EyeOff } from 'lucide-react';
 
 
 export const AdminCourseManagement = () => {
+  const { showToast } = useToast();
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,8 +28,10 @@ export const AdminCourseManagement = () => {
       const newStatus = currentStatus === 'published' ? 'draft' : 'published';
       await adminCourseAPI.update(id, { status: newStatus, is_active: newStatus === 'published' });
       fetchCourses();
+      showToast(`Course ${newStatus === 'published' ? 'published' : 'unpublished'}.`, 'success');
     } catch (e) {
       console.error('Toggle failed', e);
+      showToast('Could not update course status.', 'error');
     }
   };
 
@@ -46,8 +50,9 @@ export const AdminCourseManagement = () => {
       if (!Number.isFinite(parsedPrice) || parsedPrice < 0 || (parsedWeeks !== null && (!Number.isInteger(parsedWeeks) || parsedWeeks < 1))) throw new Error('Enter a valid price and whole number of weeks.');
       await adminCourseAPI.update(course.id, { price: parsedPrice, duration_weeks: parsedWeeks, level: level.trim() || 'Beginner', delivery_mode: mode.trim().toLowerCase() });
       fetchCourses();
+      showToast('Course settings saved.', 'success');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Could not save course settings.');
+      showToast(e instanceof Error ? e.message : 'Could not save course settings.', 'error');
     }
   };
 

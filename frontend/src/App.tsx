@@ -4,16 +4,17 @@ import { AppRouter } from './router/AppRouter';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './contexts/ToastContext';
 
 function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <AuthProvider>
-          <HashRouter>
-            <AppRouter />
-          </HashRouter>
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <HashRouter><AppRouter /></HashRouter>
+          </AuthProvider>
+        </ToastProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
