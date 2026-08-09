@@ -150,6 +150,31 @@
   --bp-laptop: 1024px;
   --bp-desktop: 1280px;
   --bp-ultrawide: 1536px;
+
+  /* 9. BRAND + COMPAT ALIASES
+     Several components referenced tokens that never existed
+     (--primary, --color-blue), which broke their colour in one theme.
+     These aliases give every existing reference a real value and give us
+     one canonical name per brand role. */
+  --primary: var(--color-primary-500);
+  --primary-hover: var(--color-primary-600);
+  --accent: var(--color-accent-500);
+  --violet: var(--color-secondary-500);
+  --color-blue: var(--color-info);
+
+  /* Emphasis gradient — cyan -> violet, used sparingly for hero/brand marks */
+  --brand-gradient: linear-gradient(135deg, var(--color-accent-500) 0%, var(--color-secondary-500) 100%);
+  --brand-gradient-deep: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-secondary-500) 100%);
+
+  /* Minimum comfortable touch target (WCAG 2.5.5) */
+  --touch-target: 44px;
+}
+
+/* In dark mode, "primary" emphasis reads better as the cyan accent.
+   Keeping the deep-navy gradient only for large brand surfaces. */
+#root[data-theme="dark"], .theme-dark {
+  --primary: var(--color-accent-500);
+  --primary-hover: var(--color-accent-600);
 }
 
 /* =========================================
@@ -250,9 +275,11 @@ a:hover {
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, var(--color-accent-500) 0%, var(--color-secondary-500) 100%);
+  background: var(--brand-gradient);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 /* =========================================
@@ -397,4 +424,68 @@ a:hover {
 
 @media (max-width: 420px) {
   .landing-create-account { display: none; }
+}
+
+/* =========================================
+   FOUNDATION: RESPONSIVE + MOTION + A11Y
+   Global rules that lift every page at once.
+   ========================================= */
+
+/* Never let a page push the whole document sideways. Wide content
+   (tables, code blocks, diagrams) must scroll inside its own box. */
+html, body, #root { max-width: 100%; }
+
+/* Respect the OS "reduce motion" setting everywhere, including
+   framer-motion driven transforms. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Consistent, visible keyboard focus on every interactive element. */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Comfortable tap targets for touch. */
+@media (pointer: coarse) {
+  button, a.btn, .ui-button, .bottom-nav-item, .sidebar-item {
+    min-height: var(--touch-target);
+  }
+}
+
+/* Reusable page-entrance animation for views that opt in. */
+@keyframes viewEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.view-enter { animation: viewEnter var(--transition-normal) ease-out both; }
+
+/* Section heading used across redesigned panels. */
+.section-title {
+  font-family: var(--font-headings);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3);
+}
+
+/* A wrapper any table can sit in so it scrolls instead of clipping. */
+.table-scroll { width: 100%; overflow-x: auto; }
+
+/* Stack toolbars/action rows vertically on small screens. */
+@media (max-width: 640px) {
+  .stack-mobile { flex-direction: column !important; align-items: stretch !important; }
+  .stack-mobile > * { width: 100%; }
 }
