@@ -16,7 +16,11 @@ const SAFE_API_PATTERNS = [
   /\/api\/courses(\/.*)?$/,
   /\/api\/lessons(\/.*)?$/,
   /\/api\/profile/,
-  /\/api\/announcements/
+  /\/api\/announcements/,
+  /\/api\/student\/dashboard/,
+  /\/api\/live-classes/,
+  /\/api\/gamification/,
+  /\/api\/certificates/
 ]
 
 registerRoute(
