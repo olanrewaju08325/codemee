@@ -4,7 +4,9 @@ import { coursesAPI } from '../apiClient'
 import {
   Code2, Monitor, Award, ChevronRight, UserPlus,
   Zap, Star, CheckCircle,
-  Send, Loader2, X, GraduationCap, Users, Clock, Video
+  Send, Loader2, X, GraduationCap, Users, Clock, Video, Layout, Palette,
+  Braces, Atom, Server, Layers3, BarChart3, BrainCircuit, CalendarDays,
+  UsersRound, Timer, KeyRound, PartyPopper
 } from 'lucide-react'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 
@@ -13,15 +15,25 @@ interface LandingViewProps {
 }
 
 const COURSES = [
-  { id: 'wd101', title: 'HTML Fundamentals', level: 'Beginner', price: 25000, weeks: 6, icon: '🌐', tag: 'Most Popular' },
-  { id: 'css',   title: 'CSS & Responsive Design', level: 'Beginner', price: 25000, weeks: 6, icon: '🎨', tag: '' },
-  { id: 'js',    title: 'JavaScript Programming', level: 'Intermediate', price: 30000, weeks: 8, icon: '⚡', tag: '' },
-  { id: 'react', title: 'React Framework', level: 'Intermediate', price: 35000, weeks: 10, icon: '⚛️', tag: 'Hot' },
-  { id: 'backend', title: 'Backend Development', level: 'Intermediate', price: 40000, weeks: 12, icon: '🔧', tag: '' },
-  { id: 'fullstack', title: 'Full Stack Bootcamp', level: 'Advanced', price: 60000, weeks: 16, icon: '🚀', tag: 'Best Value' },
-  { id: 'analytics', title: 'Data Analytics', level: 'Beginner', price: 35000, weeks: 8, icon: '📊', tag: '' },
-  { id: 'science', title: 'Data Science & AI', level: 'Advanced', price: 50000, weeks: 12, icon: '🤖', tag: '' },
+  { id: 'wd101', title: 'HTML Fundamentals', level: 'Beginner', price: 25000, weeks: 6, tag: 'Most Popular' },
+  { id: 'css', title: 'CSS & Responsive Design', level: 'Beginner', price: 25000, weeks: 6, tag: '' },
+  { id: 'js', title: 'JavaScript Programming', level: 'Intermediate', price: 30000, weeks: 8, tag: '' },
+  { id: 'react', title: 'React Framework', level: 'Intermediate', price: 35000, weeks: 10, tag: 'Popular' },
+  { id: 'backend', title: 'Backend Development', level: 'Intermediate', price: 40000, weeks: 12, tag: '' },
+  { id: 'fullstack', title: 'Full Stack Bootcamp', level: 'Advanced', price: 60000, weeks: 16, tag: 'Best Value' },
+  { id: 'analytics', title: 'Data Analytics', level: 'Beginner', price: 35000, weeks: 8, tag: '' },
+  { id: 'science', title: 'Data Science & AI', level: 'Advanced', price: 50000, weeks: 12, tag: '' },
 ]
+
+const COURSE_ICONS: Record<string, React.ElementType> = {
+  wd101: Layout, css: Palette, js: Braces, react: Atom, backend: Server,
+  fullstack: Layers3, analytics: BarChart3, science: BrainCircuit,
+}
+
+const money = (value: unknown) => {
+  const amount = Number(value)
+  return Number.isFinite(amount) && amount > 0 ? `₦${amount.toLocaleString('en-NG')}` : 'Price on application'
+}
 
 const TESTIMONIALS = [
   { name: 'Course delivery', state: 'Live, self-paced, or hybrid', text: 'The delivery format, schedule, and access period are clearly set for each course.', rating: 5 },
@@ -35,7 +47,7 @@ const FEATURES = [
   { icon: Award, color: 'var(--color-purple)', bg: 'rgba(139,47,166,0.2)', title: 'Course Certificates', desc: 'Eligible learners can receive a verifiable certificate after meeting course requirements.' },
   { icon: Video, color: 'var(--color-cyan)', bg: 'rgba(41,214,232,0.2)', title: 'Flexible Delivery', desc: 'Courses may be live, self-paced, or hybrid. Check each course for its current format.' },
   { icon: Users, color: '#10B981', bg: 'rgba(16,185,129,0.2)', title: 'Learning Support', desc: 'Ask academic questions through your course and contact academy support when needed.' },
-  { icon: Zap, color: '#F59E0B', bg: 'rgba(245,158,11,0.2)', title: 'AI Learning Assistant', desc: 'Where enabled, the assistant provides guided help while you learn.' },
+  { icon: Zap, color: '#F59E0B', bg: 'rgba(245,158,11,0.2)', title: 'CodeMe AI', desc: 'Where enabled, CodeMe AI provides guided help while you learn.' },
   { icon: GraduationCap, color: '#EC4899', bg: 'rgba(236,72,153,0.2)', title: 'Instructor-Led Courses', desc: 'Learn with course materials and guidance from the instructors assigned to your programme.' },
 ]
 
@@ -50,7 +62,16 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
     // Fetch live pricing from DB
     coursesAPI.getCourses().then(data => {
       if (data && data.length > 0) {
-        setCourses(data)
+        setCourses(data.map((course: any) => {
+          const fallback = COURSES.find(item => item.id === course.id)
+          return {
+            ...fallback,
+            ...course,
+            price: course.price ?? fallback?.price,
+            weeks: course.weeks ?? fallback?.weeks,
+            level: course.level ?? fallback?.level,
+          }
+        }))
       }
     }).catch(err => {
         console.error("Failed to load courses:", err)
@@ -84,7 +105,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
     <div className="full-screen-view" style={{ overflowY: 'auto', display: 'block', height: '100%' }}>
 
       {/* ── Sticky Navbar ── */}
-      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', backgroundColor: 'var(--bg-app)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid var(--border-default)' }}>
+      <nav className="landing-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', backgroundColor: 'var(--bg-app)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid var(--border-default)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <img src="/codeme.jpg" alt="CodeMe Logo" style={{ width: '40px', height: '40px', borderRadius: '8px', border: '2px solid var(--primary)' }} />
           <h1 style={{ fontFamily: 'var(--font-headings)', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '0.5px', margin: 0, color: 'var(--text-primary)' }}>CodeMe Academy</h1>
@@ -93,6 +114,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
           <ThemeSwitcher />
           <button className="btn btn-secondary" onClick={onNavigateToAuth} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
             Sign In
+          </button>
+          <button className="btn btn-secondary landing-create-account" onClick={() => { window.location.hash = '#/auth?mode=signup' }} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+            Create account
           </button>
           <button className="btn btn-primary" onClick={() => setShowApplyModal(true)} style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
             Apply Now <ChevronRight size={14} />
@@ -119,6 +143,9 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
             </button>
             <button className="btn btn-secondary" onClick={onNavigateToAuth} style={{ padding: '14px 28px', fontSize: '1rem', borderRadius: '12px', backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.2)' }}>
               Student Login
+            </button>
+            <button className="btn btn-secondary" onClick={() => { window.location.hash = '#/auth?mode=signup' }} style={{ padding: '14px 28px', fontSize: '1rem', borderRadius: '12px' }}>
+              Create account
             </button>
           </div>
           <div style={{ marginTop: '28px', display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap' }}>
@@ -161,14 +188,16 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
             <p style={{ color: 'var(--text-secondary)', marginTop: '10px' }}>Browse current programmes, pricing, and delivery options</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-            {courses.map((course) => (
-              <motion.div key={course.id} whileHover={{ scale: 1.02 }} className="card" style={{ padding: '22px', position: 'relative', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', cursor: 'pointer' }} onClick={() => setShowApplyModal(true)}>
+            {courses.map((course) => {
+              const CourseIcon = COURSE_ICONS[course.id] || Code2
+              const hasPrice = Number.isFinite(Number(course.price)) && Number(course.price) > 0
+              return <motion.div key={course.id} whileHover={{ scale: 1.02 }} className="card landing-course-card" style={{ padding: '22px', position: 'relative', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', cursor: 'pointer' }} onClick={() => { setApplyForm(form => ({ ...form, course_id: course.id })); setShowApplyModal(true) }}>
                 {course.tag && (
                   <span style={{ position: 'absolute', top: '12px', right: '12px', background: 'linear-gradient(135deg,#8B5CF6,#6366F1)', color: '#fff', fontSize: '0.62rem', fontWeight: 700, padding: '3px 8px', borderRadius: '20px' }}>
                     {course.tag}
                   </span>
                 )}
-                <div style={{ fontSize: '2rem', marginBottom: '12px' }}>{course.icon}</div>
+                <div style={{ width: '42px', height: '42px', borderRadius: '10px', display: 'grid', placeItems: 'center', background: 'rgba(139,92,246,0.14)', color: 'var(--color-purple)', marginBottom: '12px' }}><CourseIcon size={21} /></div>
                 <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '6px' }}>{course.title}</h4>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                   <span className="badge" style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.15)', color: 'var(--color-purple)' }}>{course.level}</span>
@@ -178,14 +207,14 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--color-cyan)' }}>
-                    {course.id === 'wd101' || course.price === 0 ? 'Free' : `₦${course.price.toLocaleString()}`}
+                    {hasPrice ? money(course.price) : 'Price on application'}
                   </span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--color-green)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <CheckCircle size={13} /> {course.id === 'wd101' || course.price === 0 ? 'Start Free' : 'Enroll Now'}
+                    <CheckCircle size={13} /> Apply for this course
                   </span>
                 </div>
               </motion.div>
-            ))}
+            })}
           </div>
           <div style={{ textAlign: 'center', marginTop: '32px' }}>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '12px' }}>No payment needed to apply. Admin will contact you after approval.</p>
@@ -199,19 +228,19 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
       {/* ── Schedule Info ── */}
       <section style={{ padding: '50px 20px', backgroundColor: 'rgba(0,0,0,0.2)' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <h3 style={{ fontSize: 'clamp(1.4rem,3vw,2rem)', fontWeight: 800, marginBottom: '16px' }}>📅 Class Schedule & Batches</h3>
+          <h3 style={{ fontSize: 'clamp(1.4rem,3vw,2rem)', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}><CalendarDays size={25} /> Class Schedule & Batches</h3>
           <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '24px' }}>
             Course schedules, cohort dates, and access duration are set individually for each programme. Apply to receive the current details for the course you choose.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
             {[
-              { label: 'Cohorts', value: 'Scheduled per course', icon: '👥' },
-              { label: 'Live Sessions', value: 'When included', icon: '📺' },
-              { label: 'Duration', value: 'Set per programme', icon: '⏱️' },
-              { label: 'Access', value: 'Course-specific', icon: '♾️' },
-            ].map(({ label, value, icon }) => (
+              { label: 'Cohorts', value: 'Scheduled per course', icon: UsersRound },
+              { label: 'Live Sessions', value: 'When included', icon: Video },
+              { label: 'Duration', value: 'Set per programme', icon: Timer },
+              { label: 'Access', value: 'Course-specific', icon: KeyRound },
+            ].map(({ label, value, icon: Icon }) => (
               <div key={label} className="card" style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div style={{ fontSize: '1.6rem', marginBottom: '8px' }}>{icon}</div>
+                <div style={{ color: 'var(--color-purple)', marginBottom: '8px' }}><Icon size={24} /></div>
                 <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>{value}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '3px' }}>{label}</div>
               </div>
@@ -241,7 +270,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
               HTML (HyperText Markup Language) is the building block of all websites. Every page you see on the internet is made with HTML. In this lesson, you'll write your very first HTML tag.
             </p>
             <div style={{ background: '#0d0d1a', borderRadius: '10px', padding: '16px', fontFamily: 'monospace', fontSize: '0.82rem', color: '#a5f3fc', marginBottom: '16px', overflowX: 'auto' }}>
-              <span style={{ color: '#f472b6' }}>&lt;h1&gt;</span><span style={{ color: '#fff' }}>Hello, Nigeria! 🇳🇬</span><span style={{ color: '#f472b6' }}>&lt;/h1&gt;</span>
+              <span style={{ color: '#f472b6' }}>&lt;h1&gt;</span><span style={{ color: '#fff' }}>Hello, CodeMe!</span><span style={{ color: '#f472b6' }}>&lt;/h1&gt;</span>
               <br />
               <span style={{ color: '#f472b6' }}>&lt;p&gt;</span><span style={{ color: '#fff' }}>I am learning web development at CodeMe Academy.</span><span style={{ color: '#f472b6' }}>&lt;/p&gt;</span>
             </div>
@@ -313,12 +342,15 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
 
             {applySuccess ? (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎉</div>
+                <div style={{ width: '56px', height: '56px', margin: '0 auto 16px', borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'rgba(139,92,246,0.2)', color: 'var(--color-purple)' }}><PartyPopper size={28} /></div>
                 <h3 style={{ fontWeight: 800, fontSize: '1.3rem', marginBottom: '10px' }}>Application Submitted!</h3>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
-                  Thank you! Our team will review your application and contact you within 24 hours via WhatsApp or email with your Student ID and login details.
+                  Your application is in review. We will contact you within 24 business hours with the next step. Creating an account does not activate course access; payment and enrolment approval do.
                 </p>
-                <button className="btn btn-primary" onClick={() => { setShowApplyModal(false); setApplySuccess(false) }}>Done</button>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button className="btn btn-primary" onClick={() => { setShowApplyModal(false); setApplySuccess(false) }}>Done</button>
+                  <button className="btn btn-secondary" onClick={() => { window.location.hash = '#/auth?mode=signup' }}>Create account</button>
+                </div>
               </div>
             ) : (
               <>
@@ -328,7 +360,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
                   </div>
                   <div>
                     <h3 style={{ fontWeight: 800, fontSize: '1.1rem', margin: 0 }}>Apply to Enroll</h3>
-                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', margin: '2px 0 0' }}>Free application · Admin reviews within 24hrs</p>
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)', margin: '2px 0 0' }}>Free application · Admin reviews within 24 business hours</p>
                   </div>
                 </div>
 
@@ -356,7 +388,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
                     {applyLoading ? <Loader2 size={16} className="animate-spin" /> : <><Send size={15} /> Submit Application</>}
                   </button>
                   <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
-                    No payment required at this stage. We'll send your login details via WhatsApp.
+                    Applying requests admission to a course. Create an account separately to sign in; access begins only after payment verification and enrolment approval.
                   </p>
                 </form>
               </>

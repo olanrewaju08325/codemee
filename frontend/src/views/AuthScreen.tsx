@@ -15,7 +15,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
   const [message, setMessage] = useState<string | null>(null)
   const [consent, setConsent] = useState(false)
   const [ageConfirm, setAgeConfirm] = useState(false)
-  const [view, setView] = useState<'signin' | 'signup' | 'forgot'>('signin')
+  const [view, setView] = useState<'signin' | 'signup' | 'forgot'>(() =>
+    new URLSearchParams(window.location.hash.split('?')[1] || '').get('mode') === 'signup' ? 'signup' : 'signin'
+  )
   
   const logoRef = useRef<HTMLImageElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
@@ -116,7 +118,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
         </p>
       </div>
 
-      <div ref={formRef} style={{ width: '100%', maxWidth: '400px', backgroundColor: 'var(--bg-surface)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border-default)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+      <div ref={formRef} style={{ width: '100%', maxWidth: '400px', backgroundColor: '#12111a', padding: '32px', borderRadius: '16px', border: '1px solid #312e42', boxShadow: '0 8px 32px rgba(0,0,0,0.28)' }}>
         {error && (
           <div 
             style={{ 

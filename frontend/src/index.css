@@ -383,3 +383,18 @@ a:hover {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: var(--radius-full); }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+/* Landing page: keep the public actions usable on narrow screens. */
+@media (max-width: 640px) {
+  .landing-nav { padding: 12px 14px !important; gap: 10px; align-items: flex-start !important; }
+  .landing-nav h1 { font-size: 0.95rem !important; }
+  .landing-nav img { width: 34px !important; height: 34px !important; }
+  .landing-nav > div:last-child { gap: 6px !important; flex-wrap: wrap; justify-content: flex-end; }
+  .landing-nav .btn { padding: 7px 10px !important; font-size: 0.75rem !important; }
+  .landing-course-card { min-width: 0; }
+  .full-screen-view .card { min-width: 0; }
+}
+
+@media (max-width: 420px) {
+  .landing-create-account { display: none; }
+}
