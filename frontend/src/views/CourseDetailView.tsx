@@ -33,7 +33,7 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
           apiClient.courses.getCourseModules(courseId).catch(() => []),
           apiClient.courses.getProgress().catch(() => null),
           apiClient.payments.getMyPayments(courseId).catch(() => []),
-          apiClient.publicAPI.getSettings().catch(() => [])
+          apiClient.public.getSettings().catch(() => [])
         ]);
 
         const selectedCourse = allCourses.find((c: any) => c.id === courseId) || null;

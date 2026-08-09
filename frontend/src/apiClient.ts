@@ -181,16 +181,6 @@ export const enrollmentAPI = {
   },
 };
 
-// Public API
-export const publicAPI = {
-  getSettings: async () => {
-    // We don't need authentication for public settings, but authenticatedFetch works fine
-    const response = await authenticatedFetch('/api/public-settings');
-    if (!response.ok) throw new Error('Failed to fetch public settings');
-    return response.json();
-  },
-};
-
 // Courses API
 export const coursesAPI = {
   getCourses: async () => {
@@ -1115,6 +1105,11 @@ export const publicAPI = {
   getSupportContact: async () => {
     const response = await authenticatedFetch('/api/public/support-contact');
     if (!response.ok) throw new Error('Failed to fetch support contact');
+    return response.json();
+  },
+  getSettings: async () => {
+    const response = await authenticatedFetch('/api/public-settings');
+    if (!response.ok) throw new Error('Failed to fetch public settings');
     return response.json();
   },
 };
