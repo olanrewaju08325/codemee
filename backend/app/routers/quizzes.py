@@ -11,6 +11,7 @@ from app.services.quiz_service import (
     get_user_quiz_attempts,
     get_all_quiz_attempts,
     get_all_user_quiz_attempts,
+    start_quiz,
     submit_quiz,
     create_quiz,
     update_quiz,
@@ -68,10 +69,11 @@ async def get_quiz_detail(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get quiz detail with questions (including correct answers for review).
+    Get quiz detail with questions. Correct answers are never returned to a
+    student before they submit an attempt.
     Replaces: QuizView.tsx lines 70-80
     """
-    quiz = await get_quiz_by_id(db, quiz_id, include_answers=True)
+    quiz = await get_quiz_by_id(db, quiz_id, include_answers=False)
     if not quiz:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -105,6 +107,18 @@ async def submit_quiz_endpoint(
     """
     result = await submit_quiz(db, quiz_id, user_data["user_id"], submission)
     return result
+
+
+@router.post("/quizzes/{quiz_id}/start")
+async def start_quiz_endpoint(
+    quiz_id: str,
+    user_data: Dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await start_quiz(db, quiz_id, user_data["user_id"])
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 # Admin/Teacher endpoints
 

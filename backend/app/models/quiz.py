@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Text, Numeric
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -17,6 +17,8 @@ class Quiz(Base):
     closes_at = Column(DateTime(timezone=True), nullable=True)
     duration_minutes = Column(Integer, nullable=True)
     results_released = Column(Boolean, default=True, nullable=False)
+    retake_payment_required = Column(Boolean, default=False, nullable=False)
+    retake_fee = Column(Numeric(12, 2), nullable=True)
     passing_score = Column(Integer, default=70, nullable=False)
     max_attempts = Column(Integer, nullable=True) # null = unlimited
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

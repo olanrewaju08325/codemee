@@ -43,13 +43,15 @@ export const QuizBuilder: React.FC<QuizBuilderProps> = ({
   const [passingScore, setPassingScore] = useState('70')
   const [maxAttempts, setMaxAttempts] = useState('')
   const [resultsReleased, setResultsReleased] = useState(true)
+  const [retakePaymentRequired, setRetakePaymentRequired] = useState(false)
+  const [retakeFee, setRetakeFee] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
   const resetForms = () => {
     setEditTarget(null)
     setQuizTitle('')
     setQuizScheduledAt('')
-    setAssessmentType('module_quiz'); setOpensAt(''); setClosesAt(''); setDurationMinutes(''); setPassingScore('70'); setMaxAttempts(''); setResultsReleased(true)
+    setAssessmentType('module_quiz'); setOpensAt(''); setClosesAt(''); setDurationMinutes(''); setPassingScore('70'); setMaxAttempts(''); setResultsReleased(true); setRetakePaymentRequired(false); setRetakeFee('')
     setShowForm(false)
   }
 
@@ -74,8 +76,16 @@ export const QuizBuilder: React.FC<QuizBuilderProps> = ({
       const payload = { 
         module_id: selectedModuleId, 
         title: quizTitle, 
-        scheduled_at: toIsoOrNull(quizScheduledAt)
-        , assessment_type: assessmentType, opens_at: toIsoOrNull(opensAt), closes_at: toIsoOrNull(closesAt), duration_minutes: durationMinutes ? Number(durationMinutes) : null, passing_score: Number(passingScore), max_attempts: maxAttempts ? Number(maxAttempts) : null, results_released: resultsReleased
+        scheduled_at: toIsoOrNull(quizScheduledAt),
+        assessment_type: assessmentType,
+        opens_at: toIsoOrNull(opensAt),
+        closes_at: toIsoOrNull(closesAt),
+        duration_minutes: durationMinutes ? Number(durationMinutes) : null,
+        passing_score: Number(passingScore),
+        max_attempts: maxAttempts ? Number(maxAttempts) : null,
+        results_released: resultsReleased,
+        retake_payment_required: retakePaymentRequired,
+        retake_fee: retakePaymentRequired && retakeFee ? Number(retakeFee) : null,
       }
       if (editTarget) {
         await apiClient.instructorQuizzes.update(editTarget.id, payload)
@@ -111,6 +121,8 @@ export const QuizBuilder: React.FC<QuizBuilderProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}><input type="datetime-local" className="input-field" value={opensAt} onChange={e => setOpensAt(e.target.value)} aria-label="Assessment opens" /><input type="datetime-local" className="input-field" value={closesAt} onChange={e => setClosesAt(e.target.value)} aria-label="Assessment closes" /></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}><input type="number" min="1" max="360" className="input-field" placeholder="Minutes" value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} /><input type="number" min="0" max="100" className="input-field" placeholder="Pass mark" value={passingScore} onChange={e => setPassingScore(e.target.value)} /><input type="number" min="1" className="input-field" placeholder="Attempts" value={maxAttempts} onChange={e => setMaxAttempts(e.target.value)} /></div>
           <label style={{ fontSize: '.8rem' }}><input type="checkbox" checked={resultsReleased} onChange={e => setResultsReleased(e.target.checked)} /> Release results to students immediately</label>
+          <label style={{ fontSize: '.8rem' }}><input type="checkbox" checked={retakePaymentRequired} onChange={e => setRetakePaymentRequired(e.target.checked)} /> Require a verified payment after the attempt limit</label>
+          {retakePaymentRequired && <input type="number" min="0" className="input-field" placeholder="Retake fee (NGN)" value={retakeFee} onChange={e => setRetakeFee(e.target.value)} required />}
           <small style={{ fontSize: '0.7rem', opacity: 0.7 }}>Use a final exam only for graduation/certificate assessment. A time window and duration are recommended for all formal exams.</small>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button type="submit" className="btn btn-primary" disabled={actionLoading}>
@@ -129,7 +141,7 @@ export const QuizBuilder: React.FC<QuizBuilderProps> = ({
               setEditTarget(qz); 
               setQuizTitle(qz.title); 
               setQuizScheduledAt(toDateTimeLocalValue(qz.scheduled_at)); 
-              const exam = qz as any; setAssessmentType(exam.assessment_type || 'module_quiz'); setOpensAt(toDateTimeLocalValue(exam.opens_at)); setClosesAt(toDateTimeLocalValue(exam.closes_at)); setDurationMinutes(exam.duration_minutes?.toString() || ''); setPassingScore(exam.passing_score?.toString() || '70'); setMaxAttempts(exam.max_attempts?.toString() || ''); setResultsReleased(exam.results_released ?? true);
+              const exam = qz as any; setAssessmentType(exam.assessment_type || 'module_quiz'); setOpensAt(toDateTimeLocalValue(exam.opens_at)); setClosesAt(toDateTimeLocalValue(exam.closes_at)); setDurationMinutes(exam.duration_minutes?.toString() || ''); setPassingScore(exam.passing_score?.toString() || '70'); setMaxAttempts(exam.max_attempts?.toString() || ''); setResultsReleased(exam.results_released ?? true); setRetakePaymentRequired(exam.retake_payment_required ?? false); setRetakeFee(exam.retake_fee?.toString() || '');
               setShowForm(true); 
             }} className="badge badge-blue" style={{ cursor: 'pointer' }}>
               <Edit2 size={12} />

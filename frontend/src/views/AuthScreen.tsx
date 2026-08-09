@@ -24,8 +24,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
     // GSAP Cinematic Entrance Animation
     if (logoRef.current && formRef.current) {
       gsap.fromTo(logoRef.current, 
-        { scale: 0.8, opacity: 0, y: -30 }, 
-        { scale: 1, opacity: 1, y: 0, duration: 1.2, ease: 'back.out(1.7)' }
+        { scale: 0.8, y: -30 },
+        { scale: 1, y: 0, duration: 0.7, ease: 'back.out(1.7)' }
       )
       gsap.fromTo(formRef.current.children,
         { opacity: 0, y: 20 },

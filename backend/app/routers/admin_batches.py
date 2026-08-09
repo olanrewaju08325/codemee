@@ -1,57 +1,50 @@
+from typing import Optional
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app.database import get_db
-from app.core.security import require_role
 from pydantic import BaseModel
-from typing import List, Optional
-import uuid
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.security import require_role
 from app.models.batch import Batch
-from app.routers.audit_logs import create_audit_log
 
 router = APIRouter(prefix="/api/admin/batches", tags=["Admin Batches"])
+
 
 class BatchCreate(BaseModel):
     name: str
     course_id: str
     instructor_id: Optional[str] = None
-    status: str = "upcoming"
+    status: str = "planned"
 
-class BatchUpdate(BaseModel):
-    name: Optional[str] = None
-    status: Optional[str] = None
 
 @router.get("/")
-def get_batches(db: Session = Depends(get_db), user=Depends(require_role(["admin", "teacher"]))):
-    try:
-        batches = db.execute(select(Batch).order_by(Batch.created_at.desc())).scalars().all()
-        return [{"id": str(b.id), "name": b.name, "course_id": b.course_id, "instructor_id": str(b.instructor_id) if b.instructor_id else None, "start_date": b.start_date, "status": b.status} for b in batches]
-    except Exception as e:
-        return []
+async def get_batches(db: AsyncSession = Depends(get_db), _user=Depends(require_role(["admin"]))):
+    result = await db.execute(select(Batch).order_by(Batch.created_at.desc()))
+    return [
+        {"id": str(item.id), "name": item.name, "course_id": item.course_id,
+         "instructor_id": str(item.instructor_id) if item.instructor_id else None,
+         "start_date": item.start_date, "end_date": item.end_date, "status": item.status}
+        for item in result.scalars().all()
+    ]
+
 
 @router.post("/")
-def create_batch(req: BatchCreate, db: Session = Depends(get_db), user=Depends(require_role(["admin"]))):
-    try:
-        new_batch = Batch(
-            name=req.name,
-            course_id=req.course_id,
-            instructor_id=req.instructor_id,
-            status=req.status
-        )
-        db.add(new_batch)
-        db.commit()
-        db.refresh(new_batch)
-        
-        # Log action
-        create_audit_log(
-            db=db,
-            admin_id=user["user_id"],
-            action="CREATE_BATCH",
-            target_object=str(new_batch.id),
-            admin_name=user.get("email"),
-            details=f"Created batch {new_batch.name} for course {new_batch.course_id}"
-        )
-        return {"id": str(new_batch.id), "name": new_batch.name}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+async def create_batch(
+    request: BatchCreate,
+    db: AsyncSession = Depends(get_db),
+    _user=Depends(require_role(["admin"])),
+):
+    if request.status not in {"planned", "active", "completed", "cancelled"}:
+        raise HTTPException(status_code=422, detail="Invalid batch status")
+    batch = Batch(
+        name=request.name.strip(), course_id=request.course_id,
+        instructor_id=UUID(request.instructor_id) if request.instructor_id else None,
+        status=request.status,
+    )
+    db.add(batch)
+    await db.commit()
+    await db.refresh(batch)
+    return {"id": str(batch.id), "name": batch.name}

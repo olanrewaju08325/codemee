@@ -1,53 +1,45 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from app.database import get_db
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
 from app.core.security import require_role
+from app.models.commerce import Invoice, PaymentSubmission
+from app.models.course import Course
+from app.models.enrollment import StudentEnrollment
+from app.models.profile import Profile, UserRole
+
 
 router = APIRouter(prefix="/api/admin/dashboard", tags=["Admin Operations"])
 
-@router.get("/")
-def get_admin_dashboard(db: Session = Depends(get_db), user=Depends(require_role(["admin"]))):
-    """
-    Returns executive overview telemetry for the admin dashboard.
-    """
-    try:
-        # Total Students
-        total_students = db.execute("SELECT COUNT(*) FROM profiles WHERE role ILIKE 'student'").scalar() or 0
-        
-        # Teachers
-        total_teachers = db.execute("SELECT COUNT(*) FROM profiles WHERE role ILIKE 'teacher'").scalar() or 0
-        
-        # Courses
-        total_courses = db.execute("SELECT COUNT(*) FROM courses").scalar() or 0
-        
-        # Active Batches
-        active_batches = db.execute("SELECT COUNT(*) FROM batches WHERE status = 'active'").scalar() or 0
-        
-        # Pending Payments
-        pending_payments = db.execute("SELECT COUNT(*) FROM exam_payment_verifications WHERE status = 'pending'").scalar() or 0
-        
-        return {
-            "total_students": total_students,
-            "active_students": total_students, # Mocking active for now
-            "teachers": total_teachers,
-            "courses": total_courses,
-            "active_batches": active_batches,
-            "pending_manual_payments": pending_payments,
-            "revenue_summary": 0, # Could be derived from approved payments
-            "database_health": "Healthy",
-            "deployment_status": "Stable"
-        }
-    except Exception as e:
-        return {
-            "total_students": 0,
-            "active_students": 0,
-            "teachers": 0,
-            "courses": 0,
-            "active_batches": 0,
-            "pending_manual_payments": 0,
-            "revenue_summary": 0,
-            "database_health": "Error",
-            "deployment_status": "Stable",
-            "error": str(e)
-        }
 
+@router.get("/")
+async def get_admin_dashboard(
+    db: AsyncSession = Depends(get_db),
+    _user=Depends(require_role(["admin"])),
+):
+    """Return real academy metrics; no placeholder revenue or deployment claims."""
+    async def count(statement):
+        return int((await db.execute(statement)).scalar() or 0)
+
+    total_students = await count(select(func.count(Profile.id)).where(Profile.role == UserRole.STUDENT))
+    total_teachers = await count(select(func.count(Profile.id)).where(Profile.role == UserRole.TEACHER))
+    total_courses = await count(select(func.count(Course.id)))
+    active_enrollments = await count(
+        select(func.count(StudentEnrollment.id)).where(StudentEnrollment.status == "enrolled")
+    )
+    pending_manual_payments = await count(
+        select(func.count(PaymentSubmission.id)).where(PaymentSubmission.status == "submitted")
+    )
+    revenue = (await db.execute(
+        select(func.coalesce(func.sum(Invoice.amount_due), 0)).where(Invoice.status == "paid")
+    )).scalar() or 0
+
+    return {
+        "total_students": total_students,
+        "active_students": active_enrollments,
+        "teachers": total_teachers,
+        "courses": total_courses,
+        "pending_manual_payments": pending_manual_payments,
+        "revenue_summary": float(revenue),
+    }

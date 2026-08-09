@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     GROQ_API_KEYS: str = ""
     
     # CORS (comma-separated in .env, parsed into a list at runtime)
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://codeme-academy.vercel.app,https://frontend-beryl-psi-45.vercel.app"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://codeme-academy.vercel.app"
     
     # Environment
     ENVIRONMENT: str = "development"
@@ -36,12 +36,7 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
-        # Force production frontend URLs to avoid CORS lockouts if env var is misconfigured on Render
-        required_origins = ["https://codeme-academy.vercel.app", "https://frontend-beryl-psi-45.vercel.app"]
-        for ro in required_origins:
-            if ro not in origins:
-                origins.append(ro)
-        return origins    
+        return origins
     class Config:
         env_file = ".env"
         case_sensitive = True

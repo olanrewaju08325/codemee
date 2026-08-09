@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any, List
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.core.permissions import require_teacher_or_admin
+from app.core.permissions import require_admin, require_teacher_or_admin
 from app.schemas.payment import PaymentUpdate, PaymentResponse
 from app.schemas.notification import NotificationCreate, NotificationUpdate
 from app.schemas.profile import NotificationResponse
@@ -32,7 +32,7 @@ router = APIRouter()
 
 @router.get("/admin/analytics", response_model=AnalyticsResponse)
 async def get_analytics(
-    user_data: Dict[str, Any] = Depends(require_teacher_or_admin),
+    user_data: Dict[str, Any] = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -44,7 +44,7 @@ async def get_analytics(
 
 @router.get("/admin/grading-queue", response_model=List[GradingQueueItem])
 async def get_grading_queue(
-    user_data: Dict[str, Any] = Depends(require_teacher_or_admin),
+    user_data: Dict[str, Any] = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -158,7 +158,7 @@ async def update_user_role_endpoint(
 
 @router.get("/admin/payments/pending", response_model=List[PaymentResponse])
 async def get_pending_payments(
-    user_data: Dict[str, Any] = Depends(require_teacher_or_admin),
+    user_data: Dict[str, Any] = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -172,7 +172,7 @@ async def get_pending_payments(
 async def update_payment(
     payment_id: str,
     payment_data: PaymentUpdate,
-    user_data: Dict[str, Any] = Depends(require_teacher_or_admin),
+    user_data: Dict[str, Any] = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
     """

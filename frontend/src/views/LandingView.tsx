@@ -24,19 +24,19 @@ const COURSES = [
 ]
 
 const TESTIMONIALS = [
-  { name: 'Fatima A.', state: 'Lagos', text: 'I got my first tech job 3 months after completing the Full Stack course. CodeMe changed my life!', rating: 5 },
-  { name: 'Chukwuemeka O.', state: 'Enugu', text: 'The interactive sandbox is incredible. I could run Python code right in my browser without installing anything!', rating: 5 },
-  { name: 'Hauwa M.', state: 'Kano', text: 'The certificate verification link helped me prove my skills to employers. Very professional platform.', rating: 5 },
-  { name: 'Tunde B.', state: 'Ibadan', text: 'Saturday live classes with replays is a game-changer. I can balance work and learning.', rating: 5 },
+  { name: 'Course delivery', state: 'Live, self-paced, or hybrid', text: 'The delivery format, schedule, and access period are clearly set for each course.', rating: 5 },
+  { name: 'Payment verification', state: 'Manual review', text: 'Submit your receipt or transfer reference and an admin verifies payment before access is activated.', rating: 5 },
+  { name: 'Academic support', state: 'Course-specific', text: 'Teachers answer academic questions for the courses assigned to them.', rating: 5 },
+  { name: 'Certificate eligibility', state: 'Completion-based', text: 'Certificates are issued when the requirements of the relevant course have been met.', rating: 5 },
 ]
 
 const FEATURES = [
-  { icon: Monitor, color: 'var(--color-blue)', bg: 'rgba(12,74,140,0.2)', title: 'Interactive Sandbox', desc: 'Write and run HTML, JavaScript, Python, and SQL directly in your browser. Zero installation needed.' },
-  { icon: Award, color: 'var(--color-purple)', bg: 'rgba(139,47,166,0.2)', title: 'Verified Certificates', desc: 'Earn premium, employer-ready certificates with unique QR verification links shareable on WhatsApp.' },
-  { icon: Video, color: 'var(--color-cyan)', bg: 'rgba(41,214,232,0.2)', title: 'Weekly Live Classes', desc: 'Join live Saturday sessions via Google Meet. All sessions recorded and available as replays forever.' },
-  { icon: Users, color: '#10B981', bg: 'rgba(16,185,129,0.2)', title: 'Community Forum', desc: 'Ask questions, get help from classmates and instructors. Instructor badges identify expert replies.' },
-  { icon: Zap, color: '#F59E0B', bg: 'rgba(245,158,11,0.2)', title: 'AI Code Tutor', desc: 'Get guided hints from our AI assistant when you are stuck — without spoiling the answer.' },
-  { icon: GraduationCap, color: '#EC4899', bg: 'rgba(236,72,153,0.2)', title: 'Expert Instructors', desc: 'Learn from certified Nigerian tech professionals with real-world industry experience.' },
+  { icon: Monitor, color: 'var(--color-blue)', bg: 'rgba(12,74,140,0.2)', title: 'Practical Learning', desc: 'Follow structured lessons, complete course work, and build skills at a steady pace.' },
+  { icon: Award, color: 'var(--color-purple)', bg: 'rgba(139,47,166,0.2)', title: 'Course Certificates', desc: 'Eligible learners can receive a verifiable certificate after meeting course requirements.' },
+  { icon: Video, color: 'var(--color-cyan)', bg: 'rgba(41,214,232,0.2)', title: 'Flexible Delivery', desc: 'Courses may be live, self-paced, or hybrid. Check each course for its current format.' },
+  { icon: Users, color: '#10B981', bg: 'rgba(16,185,129,0.2)', title: 'Learning Support', desc: 'Ask academic questions through your course and contact academy support when needed.' },
+  { icon: Zap, color: '#F59E0B', bg: 'rgba(245,158,11,0.2)', title: 'AI Learning Assistant', desc: 'Where enabled, the assistant provides guided help while you learn.' },
+  { icon: GraduationCap, color: '#EC4899', bg: 'rgba(236,72,153,0.2)', title: 'Instructor-Led Courses', desc: 'Learn with course materials and guidance from the instructors assigned to your programme.' },
 ]
 
 export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) => {
@@ -105,13 +105,13 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
         <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '700px', height: '700px', background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 65%)', pointerEvents: 'none' }} />
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} style={{ position: 'relative', zIndex: 1, maxWidth: '820px', margin: '0 auto' }}>
           <span className="badge badge-purple" style={{ marginBottom: '20px', padding: '8px 18px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            🇳🇬 Nigeria's #1 Tech Academy · Batches Filling Fast!
+            Technology learning for ambitious people
           </span>
           <h2 style={{ fontSize: 'clamp(2rem, 6vw, 3.8rem)', fontWeight: 900, fontFamily: 'var(--font-headings)', lineHeight: 1.1, marginBottom: '24px' }}>
-            Learn <span className="gradient-text">Software Engineering</span><br />& Land Your Tech Job
+            Learn <span className="gradient-text">technology skills</span><br />at your own pace or with a cohort
           </h2>
           <p style={{ fontSize: 'clamp(0.95rem, 2vw, 1.1rem)', color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: '600px', margin: '0 auto 40px' }}>
-            Join thousands of Nigerians learning web development, data science, and AI with our interactive browser-based sandbox. Live classes every Saturday. No laptop required.
+            Explore practical technology courses with clear learning paths, instructor-led cohorts, and self-paced options.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
             <button className="btn btn-primary" onClick={() => setShowApplyModal(true)} style={{ padding: '14px 32px', fontSize: '1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -122,7 +122,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
             </button>
           </div>
           <div style={{ marginTop: '28px', display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap' }}>
-            {[['1,000+', 'Students'], ['8', 'Courses'], ['100%', 'Online'], ['Free', 'to Apply']].map(([val, lbl]) => (
+            {[['Live', 'Cohorts'], ['Self-paced', 'Options'], ['Hybrid', 'Learning'], ['Free', 'to Apply']].map(([val, lbl]) => (
               <div key={lbl} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#fff' }}>{val}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{lbl}</div>
@@ -137,7 +137,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <h3 style={{ fontSize: 'clamp(1.6rem,4vw,2.2rem)', fontWeight: 800 }}>Why Choose CodeMe Academy?</h3>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '10px' }}>Everything you need to go from zero to employed in tech</p>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '10px' }}>A focused learning experience built for technology education</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
             {FEATURES.map(({ icon: Icon, color, bg, title, desc }) => (
@@ -158,7 +158,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <h3 style={{ fontSize: 'clamp(1.6rem,4vw,2.2rem)', fontWeight: 800 }}>Our Courses</h3>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '10px' }}>All taught live + recorded. Available in English, Yoruba, Igbo, Hausa & Pidgin</p>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '10px' }}>Browse current programmes, pricing, and delivery options</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
             {courses.map((course) => (
@@ -201,14 +201,14 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
           <h3 style={{ fontSize: 'clamp(1.4rem,3vw,2rem)', fontWeight: 800, marginBottom: '16px' }}>📅 Class Schedule & Batches</h3>
           <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '24px' }}>
-            Lessons are self-paced and available 24/7. Live sessions run every <strong style={{ color: '#fff' }}>Saturday</strong> via Google Meet. We operate <strong style={{ color: '#fff' }}>Batch 1</strong> and <strong style={{ color: '#fff' }}>Batch 2</strong> per course. Each batch is limited to ensure personal attention.
+            Course schedules, cohort dates, and access duration are set individually for each programme. Apply to receive the current details for the course you choose.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
             {[
-              { label: 'Batch Size', value: '25 students max', icon: '👥' },
-              { label: 'Live Sessions', value: 'Every Saturday', icon: '📺' },
-              { label: 'Duration', value: '4–16 weeks', icon: '⏱️' },
-              { label: 'Access', value: 'Lifetime replays', icon: '♾️' },
+              { label: 'Cohorts', value: 'Scheduled per course', icon: '👥' },
+              { label: 'Live Sessions', value: 'When included', icon: '📺' },
+              { label: 'Duration', value: 'Set per programme', icon: '⏱️' },
+              { label: 'Access', value: 'Course-specific', icon: '♾️' },
             ].map(({ label, value, icon }) => (
               <div key={label} className="card" style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div style={{ fontSize: '1.6rem', marginBottom: '8px' }}>{icon}</div>

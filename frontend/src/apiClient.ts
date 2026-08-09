@@ -165,6 +165,12 @@ export const coursesAPI = {
     return response.json();
   },
 
+  startQuiz: async (quizId: string) => {
+    const response = await authenticatedFetch(`/api/quizzes/${quizId}/start`, { method: 'POST' });
+    if (!response.ok) throw new Error('Unable to start assessment');
+    return response.json();
+  },
+
   submitQuiz: async (quizId: string, data: { answers: Record<string, string> }) => {
     const response = await authenticatedFetch(`/api/quizzes/${quizId}/submit`, {
       method: 'POST',
@@ -263,6 +269,12 @@ export const quizzesAPI = {
   getQuizAttempts: async (quizId: string) => {
     const response = await authenticatedFetch(`/api/quizzes/${quizId}/attempts`);
     if (!response.ok) throw new Error('Failed to fetch quiz attempts');
+    return response.json();
+  },
+
+  startQuiz: async (quizId: string) => {
+    const response = await authenticatedFetch(`/api/quizzes/${quizId}/start`, { method: 'POST' });
+    if (!response.ok) throw new Error('Unable to start assessment');
     return response.json();
   },
   

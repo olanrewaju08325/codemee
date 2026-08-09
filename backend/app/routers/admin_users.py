@@ -1,17 +1,21 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from app.database import get_db
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
 from app.core.security import require_role
 from app.models.profile import Profile
-from sqlalchemy import select
 
 router = APIRouter(prefix="/api/admin/users", tags=["Admin Operations"])
 
-@router.get("/")
-def get_users(db: Session = Depends(get_db), user=Depends(require_role(["admin"]))):
-    """
-    Returns a list of all users for admin management.
-    """
-    users = db.execute(select(Profile)).scalars().all()
-    return [{"id": str(u.id), "full_name": u.full_name, "role": u.role, "email": u.email} for u in users]
 
+@router.get("/")
+async def get_users(
+    db: AsyncSession = Depends(get_db),
+    _user=Depends(require_role(["admin"])),
+):
+    result = await db.execute(select(Profile).order_by(Profile.created_at.desc()))
+    return [
+        {"id": str(item.id), "full_name": item.full_name, "role": item.role, "email": item.email}
+        for item in result.scalars().all()
+    ]

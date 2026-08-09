@@ -49,6 +49,15 @@ async def _resolve_names(db: AsyncSession, payments: List[ExamPaymentVerificatio
     return name_map, quiz_map
 
 async def create_payment(db: AsyncSession, payment_data: PaymentCreate, student_id: str) -> PaymentResponse:
+    quiz = (await db.execute(
+        select(Quiz).where(Quiz.id == uuid.UUID(payment_data.quiz_id))
+    )).scalar_one_or_none()
+    if not quiz or not quiz.retake_payment_required:
+        raise ValueError("This assessment does not accept paid retakes")
+    expected_fee = int(quiz.retake_fee or 0)
+    if payment_data.amount != expected_fee:
+        raise ValueError("The submitted retake amount does not match this assessment's fee")
+
     payment = ExamPaymentVerification(
         student_id=uuid.UUID(student_id),
         quiz_id=uuid.UUID(payment_data.quiz_id),

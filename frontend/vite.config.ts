@@ -8,9 +8,6 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
-    // Preserve CodeMe's current Vercel variable names while exposing only
-    // public Supabase browser configuration to the frontend bundle.
-    envPrefix: ['VITE_', 'SUPABASE_'],
     define: {
       'process.env.SUPABASE_PROJECT_URL': JSON.stringify(env.SUPABASE_PROJECT_URL),
       'process.env.SUPABASE_ANON_KEY': JSON.stringify(env.SUPABASE_ANON_KEY),

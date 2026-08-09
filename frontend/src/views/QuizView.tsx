@@ -147,9 +147,15 @@ export const QuizView: React.FC<QuizViewProps> = ({ session, quizId, onNavigate 
     }
   };
 
-  const startQuiz = () => {
-    setActiveStep(1);
-    if (!timeRemaining) setTimeRemaining(30 * 60);
+  const startQuiz = async () => {
+    try {
+      const start = await apiClient.quizzes.startQuiz(quizId);
+      setActiveStep(1);
+      setTimeRemaining((start.duration_minutes || 30) * 60);
+    } catch (error) {
+      console.error(error);
+      alert('Unable to start this assessment. Please try again.');
+    }
   };
 
 

@@ -35,16 +35,6 @@ async def require_teacher_or_admin(user_data: Dict[str, Any] = Depends(get_curre
         )
     return user_data
 
-async def require_finance_or_admin(user_data: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
-    if user_data["role"] not in ["finance", "admin"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. Finance role required.")
-    return user_data
-
-async def require_support_or_admin(user_data: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
-    if user_data["role"] not in ["support", "admin"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. Support role required.")
-    return user_data
-
 async def require_student(user_data: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Require student role to access the route.

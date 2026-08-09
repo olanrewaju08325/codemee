@@ -25,6 +25,8 @@ class QuizResponse(BaseModel):
     closes_at: Optional[datetime] = None
     duration_minutes: Optional[int] = None
     results_released: bool = True
+    retake_payment_required: bool = False
+    retake_fee: Optional[float] = None
     passing_score: int
     max_attempts: Optional[int] = None
     created_at: datetime
@@ -67,6 +69,8 @@ class QuizCreate(BaseModel):
     closes_at: Optional[datetime] = None
     duration_minutes: Optional[int] = None
     results_released: bool = True
+    retake_payment_required: bool = False
+    retake_fee: Optional[float] = None
 
 class QuizUpdate(BaseModel):
     title: Optional[str] = None
@@ -78,6 +82,8 @@ class QuizUpdate(BaseModel):
     closes_at: Optional[datetime] = None
     duration_minutes: Optional[int] = None
     results_released: Optional[bool] = None
+    retake_payment_required: Optional[bool] = None
+    retake_fee: Optional[float] = None
 
 class QuizQuestionCreate(BaseModel):
     question_text: str

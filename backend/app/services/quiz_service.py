@@ -1,10 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, func
+from sqlalchemy import text
 from sqlalchemy.orm import selectinload
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 import json
 from app.models.quiz import Quiz, QuizQuestion, QuizAttempt
+from app.models.payment import ExamPaymentVerification
 from app.schemas.quiz import (
     QuizResponse,
     QuizAttemptResponse,
@@ -57,6 +59,8 @@ def _serialize_quiz(q: Quiz, include_answer: bool = False) -> QuizResponse:
         closes_at=q.closes_at,
         duration_minutes=q.duration_minutes,
         results_released=q.results_released,
+        retake_payment_required=q.retake_payment_required,
+        retake_fee=float(q.retake_fee) if q.retake_fee is not None else None,
         passing_score=q.passing_score,
         max_attempts=q.max_attempts,
         created_at=q.created_at,
@@ -96,6 +100,8 @@ async def get_quizzes_by_module(db: AsyncSession, module_id: str) -> List[QuizRe
             closes_at=q.closes_at,
             duration_minutes=q.duration_minutes,
             results_released=q.results_released,
+            retake_payment_required=q.retake_payment_required,
+            retake_fee=float(q.retake_fee) if q.retake_fee is not None else None,
             passing_score=q.passing_score,
             max_attempts=q.max_attempts,
             created_at=q.created_at
@@ -156,6 +162,31 @@ async def get_all_user_quiz_attempts(db: AsyncSession, user_id: str) -> List[Qui
 
     return [_serialize_attempt(a, quiz_title) for a, quiz_title in rows]
 
+
+async def start_quiz(db: AsyncSession, quiz_id: str, user_id: str) -> dict:
+    """Start an assessment once and record the authoritative timer origin."""
+    quiz = (await db.execute(select(Quiz).where(Quiz.id == quiz_id))).scalar_one_or_none()
+    if not quiz:
+        raise ValueError("Quiz not found")
+    now = datetime.now(timezone.utc)
+    if quiz.opens_at and now < quiz.opens_at:
+        raise ValueError("This assessment is not open yet")
+    if quiz.closes_at and now > quiz.closes_at:
+        raise ValueError("This assessment window has closed")
+    await db.execute(
+        text("""INSERT INTO quiz_attempt_starts (quiz_id, student_id)
+                VALUES (:quiz_id, :student_id)
+                ON CONFLICT (quiz_id, student_id) DO NOTHING"""),
+        {"quiz_id": quiz_id, "student_id": user_id},
+    )
+    result = await db.execute(
+        text("SELECT started_at FROM quiz_attempt_starts WHERE quiz_id = :quiz_id AND student_id = :student_id"),
+        {"quiz_id": quiz_id, "student_id": user_id},
+    )
+    started_at = result.scalar_one()
+    await db.commit()
+    return {"started_at": started_at, "duration_minutes": quiz.duration_minutes}
+
 async def submit_quiz(
     db: AsyncSession,
     quiz_id: str,
@@ -177,6 +208,16 @@ async def submit_quiz(
         raise ValueError("This assessment is not open yet")
     if quiz.closes_at and now > quiz.closes_at:
         raise ValueError("This assessment window has closed")
+    if quiz.duration_minutes:
+        started_at = (await db.execute(
+            text("SELECT started_at FROM quiz_attempt_starts WHERE quiz_id = :quiz_id AND student_id = :student_id"),
+            {"quiz_id": quiz_id, "student_id": user_id},
+        )).scalar_one_or_none()
+        if not started_at:
+            raise ValueError("Start the assessment before submitting it")
+        elapsed_seconds = (now - started_at).total_seconds()
+        if elapsed_seconds > quiz.duration_minutes * 60:
+            raise ValueError("The assessment time limit has expired")
 
     result = await db.execute(
         select(QuizQuestion).where(QuizQuestion.quiz_id == quiz_id)
@@ -209,8 +250,17 @@ async def submit_quiz(
     attempt_count = result.scalar() or 0
     
     if quiz.max_attempts is not None and attempt_count >= quiz.max_attempts:
-        raise ValueError("Maximum attempts reached for this quiz")
-    attempt_count = result.scalar() or 0
+        if not quiz.retake_payment_required:
+            raise ValueError("Maximum attempts reached for this assessment")
+        paid_retake_count = (await db.execute(
+            select(func.count(ExamPaymentVerification.id))
+            .where(ExamPaymentVerification.student_id == user_id)
+            .where(ExamPaymentVerification.quiz_id == quiz_id)
+            .where(ExamPaymentVerification.status == "approved")
+        )).scalar() or 0
+        required_paid_retakes = attempt_count - quiz.max_attempts + 1
+        if paid_retake_count < required_paid_retakes:
+            raise ValueError("A verified retake payment is required before another attempt")
 
     attempt = QuizAttempt(
         quiz_id=quiz_id,
@@ -222,6 +272,11 @@ async def submit_quiz(
     db.add(attempt)
     await db.commit()
     await db.refresh(attempt)
+    await db.execute(
+        text("DELETE FROM quiz_attempt_starts WHERE quiz_id = :quiz_id AND student_id = :student_id"),
+        {"quiz_id": quiz_id, "student_id": user_id},
+    )
+    await db.commit()
 
     return QuizSubmissionResponse(
         attempt_id=str(attempt.id),
