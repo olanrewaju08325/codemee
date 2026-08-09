@@ -30,7 +30,7 @@ export const PaymentVerificationQueue: React.FC = () => {
   return <section className="card" style={{ padding: '24px' }}>
     <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Course Payment Verification</h2>
     <p style={{ color: 'var(--text-secondary)', margin: '6px 0 18px' }}>Approve only after confirming the transfer reference and amount in the provider account.</p>
-    {error && <p role="alert" style={{ color: '#F87171', marginBottom: '12px' }}>{error}</p>}
+    {error && <p role="alert" style={{ color: 'var(--color-danger)', marginBottom: '12px' }}>{error}</p>}
     {payments.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No course payments are awaiting review.</p> : <div style={{ display: 'grid', gap: '12px' }}>
       {payments.map(payment => <div key={payment.id} style={{ border: '1px solid var(--border-default)', borderRadius: '10px', padding: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>

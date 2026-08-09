@@ -177,7 +177,7 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
       setSqlReady(true)
       setTerminalOutput([{ type: 'info', text: 'SQL engine ready. A sample "students" table is preloaded. Click Run.' }])
     } catch (e: any) {
-      setTerminalOutput([{ type: 'error', text: `❌ Failed to load SQL engine: ${e.message}` }])
+      setTerminalOutput([{ type: 'error', text: `Failed to load SQL engine: ${e.message}` }])
     } finally {
       setSqlLoading(false)
     }

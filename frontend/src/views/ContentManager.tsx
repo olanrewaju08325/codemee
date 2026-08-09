@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Loader2, Plus, Layout, BookOpen, PenTool, CheckSquare, Settings } from 'lucide-react'
+import { Loader2, Plus, Layout, BookOpen, PenTool, CheckSquare, Settings, CircleDollarSign, Globe, BarChart3, Clock, CheckCircle2 } from 'lucide-react'
 import { CourseBuilder } from '../components/admin/content/CourseBuilder'
 import { ModuleBuilder } from '../components/admin/content/ModuleBuilder'
 import { LessonBuilder } from '../components/admin/content/LessonBuilder'
@@ -92,12 +92,12 @@ export const ContentManager: React.FC = () => {
       {activeView !== 'new-course' && (() => {
         const c = courses.find(x => x.id === selectedCourseId)
         return c ? (
-          <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '10px 14px', display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            <span>💰 Price: <strong>{c.currency || 'NGN'} {Number(c.price || 0).toLocaleString()}</strong></span>
-            <span>🌐 Language: <strong>{c.language || 'English'}</strong></span>
-            <span>📊 Level: <strong>{c.level || 'Beginner'}</strong></span>
-            <span>🕐 Duration: <strong>{c.duration_weeks || '?'} weeks</strong></span>
-            <span>✅ Status: <strong style={{ color: c.is_active ? 'var(--color-success)' : 'var(--color-danger)' }}>{c.is_active ? 'Active' : 'Inactive'}</strong></span>
+          <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '10px 14px', display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><CircleDollarSign size={13} /> Price: <strong>{c.currency || 'NGN'} {Number(c.price || 0).toLocaleString()}</strong></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Globe size={13} /> Language: <strong>{c.language || 'English'}</strong></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><BarChart3 size={13} /> Level: <strong>{c.level || 'Beginner'}</strong></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Clock size={13} /> Duration: <strong>{c.duration_weeks || '?'} weeks</strong></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><CheckCircle2 size={13} /> Status: <strong style={{ color: c.is_active ? 'var(--color-success)' : 'var(--color-danger)' }}>{c.is_active ? 'Active' : 'Inactive'}</strong></span>
           </div>
         ) : null
       })()}

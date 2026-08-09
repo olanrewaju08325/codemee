@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../../supabaseClient'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus, Settings } from 'lucide-react'
 import type { Course } from '../../../types/models'
 
 const LANGUAGES = ['English', 'Yoruba', 'Igbo', 'Hausa', 'Pidgin English']
@@ -104,7 +104,9 @@ export const CourseBuilder: React.FC<CourseBuilderProps> = ({
 
   return (
     <form onSubmit={handleSaveCourseSettings} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>{isNew ? '➕ Create New Course' : `⚙️ Settings: ${courses.find(c => c.id === selectedCourseId)?.title}`}</h3>
+      <h3 style={{ fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {isNew ? <><Plus size={16} /> Create New Course</> : <><Settings size={16} /> Settings: {courses.find(c => c.id === selectedCourseId)?.title}</>}
+      </h3>
 
       {isNew && (
         <div className="form-group" style={{ marginBottom: 0 }}>
