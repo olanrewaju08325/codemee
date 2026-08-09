@@ -143,6 +143,30 @@ export const authAPI = {
     if (!response.ok) throw new Error('Failed to fetch certificate status');
     return response.json();
   },
+
+  // Public: request a password-reset email through OUR backend/SMTP, bypassing
+  // Supabase's broken recovery email. Returns { success, delivered }. `delivered`
+  // is false when SMTP couldn't send, so the UI can offer the WhatsApp fallback.
+  forgotPassword: async (email: string): Promise<{ success: boolean; delivered: boolean; message?: string }> => {
+    const response = await authenticatedFetch('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) throw new Error('Failed to request password reset');
+    return response.json();
+  },
+
+  // Public: complete a reset using the signed token from the email link.
+  resetPasswordWithToken: async (token: string, newPassword: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+    const response = await authenticatedFetch('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+    // The endpoint returns 200 with { success:false, error } for bad tokens,
+    // so surface the body rather than throwing on !ok alone.
+    const data = await response.json().catch(() => ({ success: false, error: 'Unexpected server response.' }));
+    return data;
+  },
 };
 
 // Enrollment API

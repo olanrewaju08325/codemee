@@ -2,13 +2,37 @@ name: Keep Render Backend Alive
 
 on:
   schedule:
-    - cron: '*/10 * * * *' # Runs every 10 minutes
+    # Every 10 minutes. Render free instances sleep after ~15 min idle, so this
+    # comfortably keeps the backend warm. Note: GitHub sometimes delays scheduled
+    # runs under load, hence the generous retry/timeout below.
+    - cron: '*/10 * * * *'
   workflow_dispatch: # Allows manual trigger
+
+# Never run two pings at once if a previous slow (cold-start) run overlaps.
+concurrency:
+  group: keep-alive
+  cancel-in-progress: false
 
 jobs:
   ping-backend:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping API Health Endpoint
+      - name: Ping API health endpoint (cold-start tolerant)
         run: |
-          curl -sSf https://codemee-backend.onrender.com/api/health || exit 1
+          URL="https://codemee-backend.onrender.com/api/health"
+          # A sleeping instance can take 30-60s to wake; retry patiently so a
+          # cold start doesn't register as downtime.
+          for attempt in 1 2 3 4 5; do
+            echo "Attempt $attempt: pinging $URL"
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "$URL" || echo "000")
+            echo "  -> HTTP $code"
+            # 200 healthy; 503 means it's awake but degraded (still "not asleep").
+            if [ "$code" = "200" ] || [ "$code" = "503" ]; then
+              echo "Backend is awake (HTTP $code)."
+              exit 0
+            fi
+            echo "  Not ready yet; waiting before retry..."
+            sleep 20
+          done
+          echo "Backend did not respond after retries."
+          exit 1

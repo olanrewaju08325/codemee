@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import apiClient from '../apiClient';
 import { Lock, Loader2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+// Pull the signed token our backend put in the reset link. We use a HashRouter,
+// so the real query string lives after the '?' inside window.location.hash
+// (e.g. #/reset-password?token=abc). Fall back to the normal search string too.
+const readResetToken = (): string => {
+  const fromHash = window.location.hash.split('?')[1] || '';
+  const fromSearch = window.location.search.replace(/^\?/, '');
+  const params = new URLSearchParams(fromHash || fromSearch);
+  return params.get('token') || '';
+};
 
 export const ResetPasswordView = () => {
   const [password, setPassword] = useState('');
@@ -9,16 +19,16 @@ export const ResetPasswordView = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
+  const [token, setToken] = useState('');
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have an active session to reset password for
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        setError("Invalid or expired reset link.");
-      }
-    });
+    const t = readResetToken();
+    if (!t) {
+      setError("This reset link is missing its security token. Please request a new one from the sign-in screen.");
+    }
+    setToken(t);
   }, []);
 
   const handleReset = async (e: React.FormEvent) => {
@@ -38,19 +48,25 @@ export const ResetPasswordView = () => {
       return;
     }
 
-    try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password
-      });
+    if (!token) {
+      setError("This reset link is invalid or has expired. Please request a new one.");
+      setLoading(false);
+      return;
+    }
 
-      if (updateError) throw updateError;
-      
+    try {
+      const res = await apiClient.auth.resetPasswordWithToken(token, password);
+      if (!res || !res.success) {
+        setError((res && res.error) || "We couldn't update your password. The link may have expired — please request a new one.");
+        return;
+      }
+
       setSuccess(true);
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/');
       }, 3000);
     } catch (err: any) {
-      setError(err.message || 'An error occurred updating your password.');
+      setError(err?.message || 'An error occurred updating your password.');
     } finally {
       setLoading(false);
     }
@@ -66,7 +82,7 @@ export const ResetPasswordView = () => {
         {success ? (
           <div style={{ textAlign: 'center' }}>
             <div style={{ color: '#86efac', marginBottom: '16px' }}>Password updated successfully!</div>
-            <p style={{ color: 'var(--text-secondary)' }}>Redirecting to dashboard...</p>
+            <p style={{ color: 'var(--text-secondary)' }}>Redirecting you to sign in...</p>
           </div>
         ) : (
           <>

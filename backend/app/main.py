@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine
-from app.routers import auth, enrollment, courses, quizzes, certificates, forum, lessons, payments, announcements, admin, notifications, push, cron, ai, analytics, health, audit_logs, database, student_dashboard, teacher_dashboard, teacher_ai, admin_dashboard, admin_users, admin_courses, admin_system, admin_monitoring, commerce, support, admin_staff
+from app.routers import auth, enrollment, courses, quizzes, certificates, forum, lessons, payments, announcements, admin, notifications, push, cron, ai, analytics, health, audit_logs, database, student_dashboard, teacher_dashboard, teacher_ai, admin_dashboard, admin_users, admin_courses, admin_system, admin_monitoring, commerce, support, admin_staff, password_reset
 import logging
 
 # Configure production-ready logging
@@ -42,6 +42,7 @@ app.include_router(health.router)
 
 # Router registration
 app.include_router(auth.router, prefix="/api", tags=["Authentication"])
+app.include_router(password_reset.router, tags=["Password Reset"])
 app.include_router(enrollment.router, prefix="/api", tags=["Enrollment"])
 app.include_router(courses.router, prefix="/api", tags=["Courses"])
 app.include_router(quizzes.router, prefix="/api", tags=["Quizzes"])

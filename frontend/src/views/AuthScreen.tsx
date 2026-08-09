@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
+import apiClient from '../apiClient'
 import { gsap } from 'gsap'
-import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react'
+import { Mail, Lock, Loader2, ArrowRight, MessageCircle } from 'lucide-react'
+import { whatsappLink } from '../config/support'
 
 interface AuthScreenProps {
   onAuthSuccess: (session: any) => void
@@ -50,6 +52,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [showAdminFallback, setShowAdminFallback] = useState(false)
   const [consent, setConsent] = useState(false)
   const [ageConfirm, setAgeConfirm] = useState(false)
   const [view, setView] = useState<'signin' | 'signup' | 'forgot'>(() =>
@@ -78,6 +81,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
     setLoading(true)
     setError(null)
     setMessage(null)
+    setShowAdminFallback(false)
 
     try {
       if (view === 'signup') {
@@ -124,12 +128,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           onAuthSuccess(data.session)
         }
       } else if (view === 'forgot') {
-        // Forgot Password
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/#/reset-password`,
-        });
-        if (resetError) throw resetError
-        setMessage("If an account exists for that email, password reset instructions are on their way. Check your inbox and spam folder.");
+        // Forgot Password — route through OUR backend, which emails a signed
+        // reset link via the academy's own SMTP (Supabase's built-in recovery
+        // email was returning 500s). The response tells us whether SMTP could
+        // actually deliver; if not, we surface the WhatsApp/admin fallback.
+        const res = await apiClient.auth.forgotPassword(email)
+        if (res && res.delivered) {
+          setMessage("If an account exists for that email, a reset link is on its way. Check your inbox and spam folder — the link is valid for 30 minutes.")
+        } else {
+          // Email couldn't be sent right now. Don't strand the student — point
+          // them straight to the admin so their password can be reset manually.
+          setMessage("We couldn't send the reset email automatically right now. No problem — reach the admin below and we'll reset your password for you.")
+          setShowAdminFallback(true)
+        }
       }
     } catch (err: any) {
       setError(friendlyAuthError(err, view))
@@ -186,6 +197,32 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           >
             {message}
           </div>
+        )}
+
+        {view === 'forgot' && showAdminFallback && (
+          <a
+            href={whatsappLink("Hi CodeMe Academy admin, I need help resetting my password. My account email is: " + (email || '[your email]'))}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              backgroundColor: '#25D366',
+              color: '#06240f',
+              padding: '13px 16px',
+              borderRadius: '12px',
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+              marginBottom: '16px',
+              boxShadow: '0 6px 18px rgba(37, 211, 102, 0.28)'
+            }}
+          >
+            <MessageCircle size={18} />
+            Chat with the admin on WhatsApp
+          </a>
         )}
 
         <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
