@@ -15,4 +15,10 @@ async def get_courses(
     _user=Depends(require_role(["admin"])),
 ):
     result = await db.execute(select(Course).order_by(Course.title))
-    return [{"id": item.id, "title": item.title, "status": item.status} for item in result.scalars().all()]
+    return [{
+        "id": item.id, "title": item.title, "description": item.description,
+        "status": item.status, "is_active": item.is_active,
+        "price": float(item.price or 0), "currency": item.currency,
+        "level": item.level, "duration_weeks": item.duration_weeks,
+        "delivery_mode": item.delivery_mode, "payment_required": item.payment_required,
+    } for item in result.scalars().all()]

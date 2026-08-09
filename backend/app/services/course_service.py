@@ -26,6 +26,16 @@ from app.schemas.course import (
 )
 from app.services.push_service import queue_push_many
 
+def _course_response(c: Course) -> CourseResponse:
+    return CourseResponse(
+        id=c.id, title=c.title, description=c.description, is_active=c.is_active,
+        whatsapp_group_cap=c.whatsapp_group_cap, platform_access_cap=c.platform_access_cap,
+        total_batches=c.total_batches, single_batch_only=c.single_batch_only,
+        price=float(c.price or 0), currency=c.currency, level=c.level,
+        duration_weeks=c.duration_weeks, display_tag=c.display_tag, status=c.status,
+        delivery_mode=c.delivery_mode, payment_required=c.payment_required, created_at=c.created_at,
+    )
+
 # Course functions
 async def get_all_courses(db: AsyncSession) -> List[CourseResponse]:
     """Get all courses."""
@@ -35,13 +45,7 @@ async def get_all_courses(db: AsyncSession) -> List[CourseResponse]:
     courses = result.scalars().all()
     
     return [
-        CourseResponse(
-            id=c.id,
-            title=c.title,
-            description=c.description,
-            is_active=c.is_active,
-            created_at=c.created_at
-        )
+        _course_response(c)
         for c in courses
     ]
 
@@ -55,13 +59,7 @@ async def get_course_by_id(db: AsyncSession, course_id: str) -> Optional[CourseR
     if not course:
         return None
     
-    return CourseResponse(
-        id=course.id,
-        title=course.title,
-        description=course.description,
-        is_active=course.is_active,
-        created_at=course.created_at
-    )
+    return _course_response(course)
 
 async def create_course(db: AsyncSession, course_data: CourseCreate) -> CourseResponse:
     """Create a new course."""
@@ -69,13 +67,7 @@ async def create_course(db: AsyncSession, course_data: CourseCreate) -> CourseRe
     db.add(course)
     await db.commit()
     
-    return CourseResponse(
-        id=course.id,
-        title=course.title,
-        description=course.description,
-        is_active=course.is_active,
-        created_at=course.created_at
-    )
+    return _course_response(course)
 
 async def update_course(db: AsyncSession, course_id: str, course_data: CourseUpdate) -> Optional[CourseResponse]:
     """Update an existing course."""
@@ -84,6 +76,7 @@ async def update_course(db: AsyncSession, course_id: str, course_data: CourseUpd
     await db.execute(
         update(Course).where(Course.id == course_id).values(**update_data)
     )
+    await db.commit()
     
     return await get_course_by_id(db, course_id)
 

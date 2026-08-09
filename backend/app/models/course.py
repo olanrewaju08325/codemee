@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, Text, Boolean, ForeignKey
+from sqlalchemy import Column, String, Integer, DateTime, Text, Boolean, ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -17,6 +17,11 @@ class Course(Base):
     platform_access_cap = Column(Integer, default=40, nullable=False)
     total_batches = Column(Integer, default=2, nullable=False)
     single_batch_only = Column(Boolean, default=False, nullable=False)
+    price = Column(Numeric(12, 2), default=0, nullable=False)
+    currency = Column(String, default="NGN", nullable=False)
+    level = Column(String, default="Beginner", nullable=False)
+    duration_weeks = Column(Integer, nullable=True)
+    display_tag = Column(String, nullable=True)
     # Commercial delivery controls. These are deliberately independent from
     # legacy capacity fields so a course can be live, self-paced, or hybrid.
     delivery_mode = Column(String, default="hybrid", nullable=False)

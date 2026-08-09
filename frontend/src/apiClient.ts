@@ -13,7 +13,7 @@ async function getAuthToken(): Promise<string | null> {
 }
 
 // Generic authenticated fetch wrapper
-async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+export async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const token = await getAuthToken();
   
   const headers: Record<string, string> = {
@@ -248,6 +248,19 @@ export const coursesAPI = {
   getBadges: async () => {
     const response = await authenticatedFetch('/api/gamification/badges');
     if (!response.ok) throw new Error('Failed to fetch badges');
+    return response.json();
+  },
+};
+
+export const adminCourseAPI = {
+  list: async () => {
+    const response = await authenticatedFetch('/api/admin/courses/');
+    if (!response.ok) throw new Error('Unable to load courses');
+    return response.json();
+  },
+  update: async (id: string, data: Record<string, unknown>) => {
+    const response = await authenticatedFetch(`/api/courses/admin/courses/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    if (!response.ok) throw new Error(await response.text() || 'Unable to save course');
     return response.json();
   },
 };

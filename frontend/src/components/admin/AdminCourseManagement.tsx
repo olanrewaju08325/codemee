@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
-import { BookOpen, Edit, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { adminCourseAPI } from '../../apiClient';
+import { BookOpen, Edit, Plus, Eye, EyeOff } from 'lucide-react';
 
 
 export const AdminCourseManagement = () => {
@@ -13,9 +13,7 @@ export const AdminCourseManagement = () => {
 
   const fetchCourses = async () => {
     try {
-      const { data, error } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      setCourses(data || []);
+      setCourses(await adminCourseAPI.list());
     } catch (e) {
       console.error(e);
     } finally {
@@ -26,21 +24,30 @@ export const AdminCourseManagement = () => {
   const handleTogglePublish = async (id: string, currentStatus: string) => {
     try {
       const newStatus = currentStatus === 'published' ? 'draft' : 'published';
-      const { error } = await supabase.from('courses').update({ status: newStatus }).eq('id', id);
-      if (error) throw error;
+      await adminCourseAPI.update(id, { status: newStatus, is_active: newStatus === 'published' });
       fetchCourses();
     } catch (e) {
       console.error('Toggle failed', e);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this course?')) return;
+  const handleEdit = async (course: any) => {
+    const price = window.prompt('Course price in Naira. Enter 0 for a free course.', String(course.price ?? 0));
+    if (price === null) return;
+    const duration = window.prompt('Course duration in weeks. Leave empty if it is not set.', course.duration_weeks?.toString() || '');
+    if (duration === null) return;
+    const level = window.prompt('Level (Beginner, Intermediate, or Advanced).', course.level || 'Beginner');
+    if (level === null) return;
+    const mode = window.prompt('Delivery mode: live, self_paced, or hybrid.', course.delivery_mode || 'hybrid');
+    if (mode === null) return;
     try {
-      await supabase.from('courses').delete().eq('id', id);
+      const parsedPrice = Number(price);
+      const parsedWeeks = duration.trim() ? Number(duration) : null;
+      if (!Number.isFinite(parsedPrice) || parsedPrice < 0 || (parsedWeeks !== null && (!Number.isInteger(parsedWeeks) || parsedWeeks < 1))) throw new Error('Enter a valid price and whole number of weeks.');
+      await adminCourseAPI.update(course.id, { price: parsedPrice, duration_weeks: parsedWeeks, level: level.trim() || 'Beginner', delivery_mode: mode.trim().toLowerCase() });
       fetchCourses();
     } catch (e) {
-      console.error('Delete failed', e);
+      alert(e instanceof Error ? e.message : 'Could not save course settings.');
     }
   };
 
@@ -64,7 +71,7 @@ export const AdminCourseManagement = () => {
             <tr>
               <th className="p-4 font-semibold text-[var(--muted)]">Course</th>
               <th className="p-4 font-semibold text-[var(--muted)]">Level</th>
-              <th className="p-4 font-semibold text-[var(--muted)]">Price</th>
+              <th className="p-4 font-semibold text-[var(--muted)]">Price / duration</th>
               <th className="p-4 font-semibold text-[var(--muted)]">Status</th>
               <th className="p-4 font-semibold text-[var(--muted)] text-right">Actions</th>
             </tr>
@@ -104,14 +111,8 @@ export const AdminCourseManagement = () => {
                       >
                         {course.status === 'published' ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
-                      <button className="p-2 rounded hover:bg-[var(--surface)] text-[var(--muted)] hover:text-blue-500 transition-colors">
+                      <button onClick={() => handleEdit(course)} className="p-2 rounded hover:bg-[var(--surface)] text-[var(--muted)] hover:text-blue-500 transition-colors" title="Edit price, duration, level and delivery mode">
                         <Edit size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(course.id)}
-                        className="p-2 rounded hover:bg-[var(--surface)] text-[var(--muted)] hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>

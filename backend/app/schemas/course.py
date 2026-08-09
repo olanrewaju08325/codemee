@@ -12,6 +12,14 @@ class CourseResponse(BaseModel):
     platform_access_cap: int = 40
     total_batches: int = 2
     single_batch_only: bool = False
+    price: float = 0
+    currency: str = "NGN"
+    level: str = "Beginner"
+    duration_weeks: Optional[int] = None
+    display_tag: Optional[str] = None
+    status: str = "draft"
+    delivery_mode: str = "hybrid"
+    payment_required: bool = True
     created_at: datetime
     
     class Config:
@@ -26,6 +34,14 @@ class CourseCreate(BaseModel):
     platform_access_cap: int = 40
     total_batches: int = 2
     single_batch_only: bool = False
+    price: float = 0
+    currency: str = "NGN"
+    level: str = "Beginner"
+    duration_weeks: Optional[int] = None
+    display_tag: Optional[str] = None
+    status: str = "draft"
+    delivery_mode: str = "hybrid"
+    payment_required: bool = True
 
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
@@ -35,6 +51,14 @@ class CourseUpdate(BaseModel):
     platform_access_cap: Optional[int] = None
     total_batches: Optional[int] = None
     single_batch_only: Optional[bool] = None
+    price: Optional[float] = None
+    currency: Optional[str] = None
+    level: Optional[str] = None
+    duration_weeks: Optional[int] = None
+    display_tag: Optional[str] = None
+    status: Optional[str] = None
+    delivery_mode: Optional[str] = None
+    payment_required: Optional[bool] = None
 
 # Module schemas
 class ModuleResponse(BaseModel):

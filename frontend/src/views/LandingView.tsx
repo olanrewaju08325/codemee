@@ -67,9 +67,10 @@ export const LandingView: React.FC<LandingViewProps> = ({ onNavigateToAuth }) =>
           return {
             ...fallback,
             ...course,
-            price: course.price ?? fallback?.price,
-            weeks: course.weeks ?? fallback?.weeks,
-            level: course.level ?? fallback?.level,
+            price: course.price ?? 0,
+            weeks: course.duration_weeks ?? course.weeks,
+            level: course.level ?? 'All levels',
+            tag: course.display_tag ?? '',
           }
         }))
       }
