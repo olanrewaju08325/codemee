@@ -1101,6 +1101,14 @@ export const instructorQuizAPI = {
   },
 };
 
+export const publicAPI = {
+  getSupportContact: async () => {
+    const response = await authenticatedFetch('/api/public/support-contact');
+    if (!response.ok) throw new Error('Failed to fetch support contact');
+    return response.json();
+  },
+};
+
 export default {
   auth: authAPI,
   enrollment: enrollmentAPI,
@@ -1120,4 +1128,5 @@ export default {
   student: studentAPI,
   teacher: teacherAPI,
   instructorQuizzes: instructorQuizAPI,
+  public: publicAPI,
 };

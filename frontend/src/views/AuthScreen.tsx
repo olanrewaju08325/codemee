@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient'
 import apiClient from '../apiClient'
 import { gsap } from 'gsap'
 import { Mail, Lock, Loader2, ArrowRight, MessageCircle } from 'lucide-react'
-import { whatsappLink } from '../config/support'
+import { whatsappLinkFor, DEFAULT_SUPPORT_CONTACT } from '../config/support'
 
 interface AuthScreenProps {
   onAuthSuccess: (session: any) => void
@@ -58,11 +58,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
   const [view, setView] = useState<'signin' | 'signup' | 'forgot'>(() =>
     new URLSearchParams(window.location.hash.split('?')[1] || '').get('mode') === 'signup' ? 'signup' : 'signin'
   )
+  const [supportContact, setSupportContact] = useState(DEFAULT_SUPPORT_CONTACT)
   
   const logoRef = useRef<HTMLImageElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    apiClient.public?.getSupportContact().then(data => setSupportContact(data)).catch(console.error)
     // GSAP Cinematic Entrance Animation
     if (logoRef.current && formRef.current) {
       gsap.fromTo(logoRef.current, 
@@ -201,7 +203,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
 
         {view === 'forgot' && showAdminFallback && (
           <a
-            href={whatsappLink("Hi CodeMe Academy admin, I need help resetting my password. My account email is: " + (email || '[your email]'))}
+            href={whatsappLinkFor(supportContact.whatsapp, "Hi CodeMe Academy admin, I need help resetting my password. My account email is: " + (email || '[your email]'))}
             target="_blank"
             rel="noopener noreferrer"
             style={{

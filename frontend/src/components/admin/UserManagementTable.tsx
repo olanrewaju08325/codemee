@@ -1,10 +1,24 @@
 import { useState, useEffect } from "react";
-import { Search, Edit, Ban } from "lucide-react";
+import { Search, Edit, Ban, Key, X, RefreshCw, Copy, Check, Loader2 } from "lucide-react";
 import apiClient from "../../apiClient";
+
+const genTempPassword = (): string => {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const pick = () => chars[Math.floor(Math.random() * chars.length)];
+  return Array.from({ length: 10 }, pick).join('');
+};
 
 export const UserManagementTable = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Admin password-reset modal state.
+  const [resetTarget, setResetTarget] = useState<any | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetDone, setResetDone] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -20,6 +34,59 @@ export const UserManagementTable = () => {
     };
     fetchUsers();
   }, []);
+
+  const openReset = (user: any) => {
+    setResetTarget(user);
+    setNewPassword(genTempPassword());
+    setResetError(null);
+    setResetDone(false);
+    setCopied(false);
+  };
+
+  const closeReset = () => {
+    setResetTarget(null);
+    setNewPassword('');
+    setResetError(null);
+    setResetDone(false);
+    setResetLoading(false);
+    setCopied(false);
+  };
+
+  const submitReset = async () => {
+    if (!resetTarget?.email) {
+      setResetError("This user has no email on file, so their password can't be reset here.");
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setResetError('Password must be at least 6 characters long.');
+      return;
+    }
+    setResetLoading(true);
+    setResetError(null);
+    try {
+      const res = await apiClient.admin.resetPassword({ email: resetTarget.email, new_password: newPassword });
+      if (res && res.success) {
+        setResetDone(true);
+      } else {
+        setResetError("The password couldn't be updated. Make sure this user has a valid account, then try again.");
+      }
+    } catch (e) {
+      setResetError('Something went wrong updating the password. Please try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(newPassword);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
+
 
   return (
     <div className="bg-[var(--surface-dark)] border border-[var(--border)] rounded-xl overflow-hidden">
@@ -58,6 +125,7 @@ export const UserManagementTable = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
+                  <button onClick={() => openReset(u)} className="text-[var(--muted)] hover:text-white p-1 mr-1" title="Reset Password"><Key size={16}/></button>
                   <button className="text-[var(--muted)] hover:text-white p-1"><Edit size={16}/></button>
                   <button className="text-[var(--muted)] hover:text-red-400 p-1"><Ban size={16}/></button>
                 </td>
@@ -65,6 +133,69 @@ export const UserManagementTable = () => {
             ))}
           </tbody>
         </table>
+      )}
+
+      {resetTarget && (
+        <div
+          onClick={closeReset}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: '420px', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-default)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-lg)' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold' }}>Reset Password</h3>
+              <button onClick={closeReset} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Close"><X size={18} /></button>
+            </div>
+
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              {resetTarget.full_name || 'User'}<br />
+              <span style={{ fontFamily: 'monospace' }}>{resetTarget.email || 'No email on file'}</span>
+            </div>
+
+            {resetDone ? (
+              <>
+                <div style={{ backgroundColor: 'rgba(16,185,129,0.12)', color: '#34D399', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '16px' }}>
+                  Password updated. Share the new password below with the user.
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <code style={{ flex: 1, padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-default)', borderRadius: '8px', fontSize: '1rem', letterSpacing: '1px', wordBreak: 'break-all' }}>{newPassword}</code>
+                  <button onClick={copyPassword} className="btn" style={{ padding: '10px', border: '1px solid var(--border-default)', borderRadius: '8px', cursor: 'pointer', background: 'none', color: 'var(--text-primary)' }} title="Copy password">
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
+                </div>
+                <button onClick={closeReset} className="btn btn-primary" style={{ width: '100%', marginTop: '16px' }}>Done</button>
+              </>
+            ) : (
+              <>
+                {resetError && (
+                  <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#FCA5A5', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '16px' }}>
+                    {resetError}
+                  </div>
+                )}
+
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>NEW PASSWORD</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+                  <input
+                    type="text"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'monospace', letterSpacing: '1px' }}
+                  />
+                  <button onClick={() => setNewPassword(genTempPassword())} style={{ padding: '10px', border: '1px solid var(--border-default)', borderRadius: '8px', cursor: 'pointer', background: 'none', color: 'var(--text-primary)' }} title="Generate a new password"><RefreshCw size={16} /></button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={closeReset} className="btn" style={{ flex: 1, border: '1px solid var(--border-default)', background: 'none', color: 'var(--text-primary)' }} disabled={resetLoading}>Cancel</button>
+                  <button onClick={submitReset} className="btn btn-primary" style={{ flex: 1 }} disabled={resetLoading}>
+                    {resetLoading ? <Loader2 className="animate-spin" size={18} /> : 'Set Password'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
