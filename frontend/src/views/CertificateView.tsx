@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import apiClient from '../apiClient'
 import { motion } from 'framer-motion'
 import { gsap } from 'gsap'
-import { ChevronLeft, Printer, Award, CheckCircle, Share2, Copy, ExternalLink, Star } from 'lucide-react'
+import { ChevronLeft, Printer, Award, CheckCircle, Share2, Copy, ExternalLink, Star, MessageCircle, Trophy, GraduationCap, Zap, Medal } from 'lucide-react'
 
 interface CertificateViewProps {
   session: any
@@ -322,7 +322,7 @@ export const CertificateView: React.FC<CertificateViewProps> = ({ session, onNav
             onClick={handleWhatsAppShare}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 20px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #25D366, #128C7E)', color: '#fff', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s ease' }}
           >
-            📲 Share via WhatsApp
+            <MessageCircle size={18} /> Share via WhatsApp
           </button>
         </motion.div>
 
@@ -368,15 +368,17 @@ export const CertificateView: React.FC<CertificateViewProps> = ({ session, onNav
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.4, duration: 0.5 }}
         >
-          <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px' }}>🏆 Achievements Unlocked</h4>
+          <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Trophy size={17} style={{ color: 'var(--color-warning)' }} /> Achievements Unlocked
+          </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {[
-              { emoji: '🎓', label: 'HTML Graduate', desc: 'Completed WD101 in full' },
-              { emoji: '⚡', label: 'Fast Learner', desc: 'All 6 modules done' },
-              { emoji: '🏅', label: 'First Certificate', desc: 'Earned your first credential' },
+              { icon: <GraduationCap size={18} />, label: 'HTML Graduate', desc: 'Completed WD101 in full' },
+              { icon: <Zap size={18} />, label: 'Fast Learner', desc: 'All 6 modules done' },
+              { icon: <Medal size={18} />, label: 'First Certificate', desc: 'Earned your first credential' },
             ].map(a => (
               <div key={a.label} className="achievement-card unlocked">
-                <div className="achievement-icon unlocked">{a.emoji}</div>
+                <div className="achievement-icon unlocked">{a.icon}</div>
                 <div>
                   <p style={{ fontWeight: 700, fontSize: '0.85rem' }}>{a.label}</p>
                   <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{a.desc}</p>

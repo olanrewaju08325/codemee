@@ -133,8 +133,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
     label: a.assignment_title || 'Pending Assignment',
     course: 'CodeMe',
     due: new Date(a.due_date).toLocaleDateString(),
-    icon: '⏳',
-    color: '#F59E0B'
   }));
 
   const recommendation = activeDeadlines.length > 0 ? {
