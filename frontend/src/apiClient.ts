@@ -331,6 +331,11 @@ export const adminCourseAPI = {
     if (!response.ok) throw new Error('Unable to load courses');
     return response.json();
   },
+  create: async (data: Record<string, unknown>) => {
+    const response = await authenticatedFetch('/api/courses/admin/courses', { method: 'POST', body: JSON.stringify(data) });
+    if (!response.ok) throw new Error('Unable to create course');
+    return response.json();
+  },
   update: async (id: string, data: Record<string, unknown>) => {
     const response = await authenticatedFetch(`/api/courses/admin/courses/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
     if (!response.ok) throw new Error(await response.text() || 'Unable to save course');
@@ -736,6 +741,23 @@ export const adminAPI = {
   getUsers: async () => {
     const response = await authenticatedFetch('/api/admin/users');
     if (!response.ok) throw new Error('Failed to fetch users');
+    return response.json();
+  },
+
+  createUser: async (data: Record<string, unknown>) => {
+    const response = await authenticatedFetch('/api/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create user');
+    return response.json();
+  },
+
+  deleteUser: async (userId: string) => {
+    const response = await authenticatedFetch(`/api/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete user');
     return response.json();
   },
 };

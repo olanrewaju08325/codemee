@@ -46,9 +46,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
   React.useEffect(() => {
     Promise.all([
       apiClient.admin.getDashboardMetrics().catch(() => ({})),
-      apiClient.commerce.getPendingSubmissions().catch(() => []),
+      apiClient.admin.getPendingPayments().catch(() => []),
       apiClient.support.getStaffTickets().catch(() => [])
-    ]).then(([data, payments, tickets]) => setMetrics({ ...data, pending_course_payments: payments.length, open_support_tickets: tickets.length }));
+    ]).then(([data, payments, tickets]) => setMetrics({ 
+      ...data, 
+      pending_course_payments: payments.length, 
+      open_support_tickets: tickets.length,
+      database_health: 'Healthy'
+    }));
   }, []);
 
   const navItems = [
@@ -169,8 +174,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
               </div>
             )}
 
-            {activeTab === 'students' && <UserManagementTable />}
-            {activeTab === 'teachers' && <UserManagementTable />}
+            {activeTab === 'students' && <UserManagementTable roleFilter="student" />}
+            {activeTab === 'teachers' && <UserManagementTable roleFilter="teacher" />}
             
             {activeTab === 'finance' && <PaymentVerificationQueue />}
 

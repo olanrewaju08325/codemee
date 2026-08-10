@@ -301,3 +301,46 @@ async def admin_reset_password(email: str, new_password: str) -> bool:
         page += 1
         if page > 20:
             return False
+
+async def admin_delete_user(user_id: str) -> bool:
+    """Delete a user from Supabase Auth completely."""
+    if not settings.SUPABASE_SERVICE_ROLE_KEY:
+        return False
+    base = settings.SUPABASE_PROJECT_URL.rstrip("/")
+    url = f"{base}/auth/v1/admin/users/{user_id}"
+    request = urllib.request.Request(url, method="DELETE", headers={
+        "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+    })
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            return response.status == 200
+    except urllib.error.URLError:
+        return False
+
+async def admin_create_user(email: str, password: str, full_name: str) -> Optional[str]:
+    """Create a user via Supabase Auth Admin API and return the user_id."""
+    if not settings.SUPABASE_SERVICE_ROLE_KEY:
+        return None
+    base = settings.SUPABASE_PROJECT_URL.rstrip("/")
+    url = f"{base}/auth/v1/admin/users"
+    data = json.dumps({
+        "email": email,
+        "password": password,
+        "email_confirm": True,
+        "user_metadata": {"full_name": full_name}
+    }).encode("utf-8")
+    
+    request = urllib.request.Request(url, data=data, method="POST", headers={
+        "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            if response.status == 200:
+                user = json.loads(response.read().decode("utf-8"))
+                return user.get("id")
+    except urllib.error.URLError as e:
+        print(f"Failed to create user: {e}")
+    return None

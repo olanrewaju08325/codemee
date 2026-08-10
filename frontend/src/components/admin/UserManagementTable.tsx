@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Edit, Ban, Key, X, RefreshCw, Copy, Check, Loader2 } from "lucide-react";
+import { Search, Ban, Key, X, RefreshCw, Copy, Check, Loader2 } from "lucide-react";
 import apiClient from "../../apiClient";
 
 const genTempPassword = (): string => {
@@ -8,7 +8,11 @@ const genTempPassword = (): string => {
   return Array.from({ length: 10 }, pick).join('');
 };
 
-export const UserManagementTable = () => {
+import { adminAPI } from "../../apiClient";
+import { useToast } from "../../contexts/ToastContext";
+
+export const UserManagementTable = ({ roleFilter }: { roleFilter?: 'student' | 'teacher' | 'admin' }) => {
+  const { showToast } = useToast();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,20 +24,68 @@ export const UserManagementTable = () => {
   const [resetDone, setResetDone] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const data = await apiClient.admin.getUsers();
-        if (data) {
-          setUsers(data);
-        }
-      } catch (e) {
-        console.error("Failed to fetch users", e);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Create user state
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ full_name: '', email: '', password: genTempPassword(), role: roleFilter || 'student' });
+  const [createLoading, setCreateLoading] = useState(false);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const data = await adminAPI.getUsers();
+      if (data) {
+        setUsers(data);
       }
-      setLoading(false);
-    };
+    } catch (e) {
+      console.error("Failed to fetch users", e);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchUsers();
   }, []);
+
+  const handleDelete = async (userId: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to completely delete ${name}? This action cannot be undone.`)) return;
+    try {
+      await adminAPI.deleteUser(userId);
+      showToast('User deleted successfully', 'success');
+      fetchUsers();
+    } catch (e) {
+      showToast('Failed to delete user', 'error');
+    }
+  };
+
+  const submitCreate = async () => {
+    if (!createForm.full_name || !createForm.email || !createForm.password) {
+      showToast('Please fill all fields', 'error');
+      return;
+    }
+    setCreateLoading(true);
+    try {
+      await adminAPI.createUser(createForm);
+      showToast('User created successfully', 'success');
+      setShowCreate(false);
+      setCreateForm({ full_name: '', email: '', password: genTempPassword(), role: roleFilter || 'student' });
+      fetchUsers();
+    } catch (e) {
+      showToast('Failed to create user', 'error');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const filteredUsers = users.filter(u => {
+    if (roleFilter && u.role !== roleFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   const openReset = (user: any) => {
     setResetTarget(user);
@@ -92,13 +144,23 @@ export const UserManagementTable = () => {
     <div className="bg-[var(--surface-dark)] border border-[var(--border)] rounded-xl overflow-hidden">
       <div className="p-4 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface)]">
         <h3 className="font-bold">User Directory</h3>
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={16} />
-          <input 
-            type="text" 
-            placeholder="Search users..." 
-            className="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[var(--color-blue)]"
-          />
+        <div className="flex items-center gap-4">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={16} />
+            <input 
+              type="text" 
+              placeholder="Search users..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-[var(--color-blue)]"
+            />
+          </div>
+          <button 
+            onClick={() => setShowCreate(true)}
+            className="btn btn-primary text-sm whitespace-nowrap px-4 py-2 bg-[var(--color-blue)] text-white rounded-lg hover:opacity-90"
+          >
+            + New {roleFilter ? roleFilter.charAt(0).toUpperCase() + roleFilter.slice(1) : 'User'}
+          </button>
         </div>
       </div>
       
@@ -115,7 +177,7 @@ export const UserManagementTable = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
+            {filteredUsers.map((u) => (
               <tr key={u.id} className="border-b border-[var(--border)] hover:bg-[var(--surface)]">
                 <td className="px-6 py-4 font-medium">{u.full_name}</td>
                 <td className="px-6 py-4 text-[var(--muted)]">{u.email}</td>
@@ -126,11 +188,13 @@ export const UserManagementTable = () => {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button onClick={() => openReset(u)} className="text-[var(--muted)] hover:text-white p-1 mr-1" title="Reset Password"><Key size={16}/></button>
-                  <button className="text-[var(--muted)] hover:text-white p-1"><Edit size={16}/></button>
-                  <button className="text-[var(--muted)] hover:text-red-400 p-1"><Ban size={16}/></button>
+                  <button onClick={() => handleDelete(u.id, u.full_name)} className="text-[var(--muted)] hover:text-red-400 p-1" title="Delete User"><Ban size={16}/></button>
                 </td>
               </tr>
             ))}
+            {filteredUsers.length === 0 && (
+              <tr><td colSpan={4} className="p-8 text-center text-[var(--muted)]">No users found.</td></tr>
+            )}
           </tbody>
         </table>
       )}
@@ -194,6 +258,79 @@ export const UserManagementTable = () => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {showCreate && (
+        <div
+          onClick={() => setShowCreate(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: '420px', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-default)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-lg)' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 'bold' }}>Create New User</h3>
+              <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={18} /></button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-[var(--muted)]">Full Name</label>
+                <input
+                  type="text"
+                  value={createForm.full_name}
+                  onChange={(e) => setCreateForm({...createForm, full_name: e.target.value})}
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-[var(--color-blue)]"
+                  placeholder="John Doe"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-[var(--muted)]">Email</label>
+                <input
+                  type="email"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm({...createForm, email: e.target.value})}
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-[var(--color-blue)]"
+                  placeholder="john@example.com"
+                />
+              </div>
+              {!roleFilter && (
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-[var(--muted)]">Role</label>
+                  <select
+                    value={createForm.role}
+                    onChange={(e) => setCreateForm({...createForm, role: e.target.value as any})}
+                    className="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-[var(--color-blue)]"
+                  >
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-[var(--muted)]">Temporary Password</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={createForm.password}
+                    onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontFamily: 'monospace' }}
+                  />
+                  <button onClick={() => setCreateForm({...createForm, password: genTempPassword()})} style={{ padding: '8px', border: '1px solid var(--border-default)', borderRadius: '8px', cursor: 'pointer', background: 'none' }}><RefreshCw size={16} /></button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '24px' }}>
+              <button onClick={() => setShowCreate(false)} className="btn" style={{ flex: 1, border: '1px solid var(--border-default)', background: 'none', color: 'var(--text-primary)' }}>Cancel</button>
+              <button onClick={submitCreate} className="btn btn-primary bg-[var(--color-blue)] text-white" style={{ flex: 1 }} disabled={createLoading}>
+                {createLoading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Create User'}
+              </button>
+            </div>
           </div>
         </div>
       )}
