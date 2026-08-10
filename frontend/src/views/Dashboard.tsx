@@ -238,7 +238,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ session, onNavigate }) => 
           {loading ? (
              <Skeleton height={140} borderRadius="var(--radius-lg)" />
           ) : (
-             <QuickActionsWidget onAction={(action) => onNavigate(action === 'courses' ? 'courses' : 'dashboard')} />
+             <QuickActionsWidget onAction={(action) => {
+               if (action === 'ai_tutor') onNavigate('support');
+               else if (['courses', 'resume', 'assignments'].includes(action)) onNavigate('courses');
+               else onNavigate('dashboard');
+             }} />
           )}
         </motion.div>
       </Grid>

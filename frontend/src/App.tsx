@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AppRouter } from './router/AppRouter';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { warmBackend } from './apiClient';
+import { PWAUpdater } from './components/PWAUpdater';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -20,6 +21,7 @@ function App() {
       <ThemeProvider>
         <ToastProvider>
           <AuthProvider>
+            <PWAUpdater />
             <HashRouter><AppRouter /></HashRouter>
           </AuthProvider>
         </ToastProvider>

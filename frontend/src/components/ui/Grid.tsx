@@ -9,17 +9,12 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
 export const Grid = forwardRef<HTMLDivElement, GridProps>(
   ({ className = '', columns = 1, gap = 'md', children, ...props }, ref) => {
     
-    // We handle grid logic via inline style for maximum flexibility in this iteration
     const gapMap = {
       sm: 'var(--space-3)',
       md: 'var(--space-5)',
       lg: 'var(--space-8)'
     };
 
-    // Handle responsive grid columns via CSS variables (which requires a small addition to ui.css or inline style)
-    // For simplicity without a CSS-in-JS library, if columns is an object, we default to the lg value inline
-    // and rely on a className for actual responsiveness. If it's a number, we use it directly.
-    const gridCols = typeof columns === 'number' ? columns : (columns.lg || 3);
     const customGap = gapMap[gap as keyof typeof gapMap] || gap;
 
     return (
@@ -28,13 +23,18 @@ export const Grid = forwardRef<HTMLDivElement, GridProps>(
         className={`responsive-grid ${className}`}
         style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`, // Default fallback
           gap: customGap,
-          ...(typeof columns === 'object' ? {
+          ...(typeof columns === 'number' ? {
+             gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`
+          } : {
+             // For responsive objects, use CSS variables for a media query fallback in index.css
+             // or simply rely on flex-wrap / auto-fit in the parent if index.css isn't set up.
+             // We inject the CSS var for the max columns and let CSS handle the break points.
+             gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 320px), 1fr))`,
             '--grid-cols-sm': columns.sm || 1,
             '--grid-cols-md': columns.md || 2,
             '--grid-cols-lg': columns.lg || 3,
-          } as React.CSSProperties : {}),
+          } as React.CSSProperties),
           ...props.style
         }}
         {...props}

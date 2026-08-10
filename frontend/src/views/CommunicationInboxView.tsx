@@ -3,6 +3,7 @@ import { Bell, Megaphone, Inbox, Search, CheckCircle, ChevronLeft } from 'lucide
 import { Skeleton } from '../components/ui/Skeleton';
 import apiClient from '../apiClient';
 import ReactMarkdown from 'react-markdown';
+import { useToast } from '../contexts/ToastContext';
 
 interface CommunicationInboxViewProps {
   session: any;
@@ -14,6 +15,7 @@ export const CommunicationInboxView: React.FC<CommunicationInboxViewProps> = ({ 
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const { addToast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,8 +40,10 @@ export const CommunicationInboxView: React.FC<CommunicationInboxViewProps> = ({ 
     try {
       await apiClient.auth.markNotificationsRead();
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      addToast('success', 'All notifications marked as read');
     } catch (e) {
       console.error('Failed to mark read', e);
+      addToast('error', 'Failed to mark notifications as read');
     }
   };
 

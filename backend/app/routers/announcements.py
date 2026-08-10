@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.permissions import require_teacher_or_admin
@@ -44,7 +44,7 @@ async def get_announcements(
     announcements = await get_all_announcements(db)
     return announcements
 
-@router.get("/announcements/latest", response_model=AnnouncementResponse)
+@router.get("/announcements/latest", response_model=Optional[AnnouncementResponse])
 async def get_latest_announcement_endpoint(
     user_data: Dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -54,9 +54,4 @@ async def get_latest_announcement_endpoint(
     Replaces: Dashboard.tsx line 96 (was skipped)
     """
     announcement = await get_latest_announcement(db)
-    if not announcement:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No announcements found"
-        )
     return announcement

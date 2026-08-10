@@ -51,18 +51,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (_event === 'TOKEN_REFRESHED') {
-        // Do not trigger a full re-render on token refresh to prevent spinners
-        // when switching browser tabs. apiClient always gets the freshest token anyway.
         return;
       }
-      setSession(newSession);
-      if (newSession) {
-        setIsLoading(true);
-        fetchProfile(newSession);
-      } else {
-        setProfile(null);
-        setIsLoading(false);
-      }
+      
+      setSession((prevSession: any) => {
+        // Prevent aggressive reloading if it's the exact same user just regaining focus
+        if (prevSession?.user?.id === newSession?.user?.id) {
+          // If the token changed but it's the same user, just quietly update the session
+          if (newSession && prevSession?.access_token !== newSession?.access_token) {
+            return newSession;
+          }
+          return prevSession;
+        }
+
+        if (newSession) {
+          setIsLoading(true);
+          fetchProfile(newSession);
+          return newSession;
+        } else {
+          setProfile(null);
+          setIsLoading(false);
+          return null;
+        }
+      });
     });
 
     return () => subscription.unsubscribe();
