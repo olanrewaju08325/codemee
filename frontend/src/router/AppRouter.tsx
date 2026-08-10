@@ -8,6 +8,7 @@ import { lazy, Suspense } from 'react';
 import { LoadingLayout } from '../components/layout/LoadingLayout';
 import { ErrorLayout } from '../components/layout/ErrorLayout';
 import { AppShell } from '../components/layout/AppShell';
+import { DirectMessagingWidget } from '../components/ui/DirectMessagingWidget';
 
 const LandingView = lazy(() => import('../views/LandingView').then(m => ({ default: m.LandingView })));
 const AuthScreen = lazy(() => import('../views/AuthScreen').then(m => ({ default: m.AuthScreen })));
@@ -57,6 +58,7 @@ const AuthLayout = () => {
     >
       <Suspense fallback={<LoadingLayout message="Loading page..." />}>
         <Outlet />
+        {profile && <DirectMessagingWidget currentUser={profile} />}
       </Suspense>
     </AppShell>
   );

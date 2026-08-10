@@ -678,15 +678,43 @@ async def create_study_group_endpoint(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/{course_id}/study-groups", response_model=List[StudyGroupResponse])
-async def list_study_groups(
+@router.get("/{course_id}/study-groups")
+async def get_course_study_groups(
     course_id: str,
-    user_data: Dict[str, Any] = Depends(get_current_user),
+    user_data: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    """Get study groups for a course."""
     from app.services.course_service import get_study_groups
     groups = await get_study_groups(db, course_id, user_data["user_id"])
     return groups
+
+@router.get("/{course_id}/peers")
+async def get_course_peers(
+    course_id: str,
+    user_data: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get list of other students enrolled in this course (Student Directory)."""
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT p.id, p.full_name, p.avatar_url, p.role
+        FROM student_enrollments e
+        JOIN profiles p ON e.student_id = p.id
+        WHERE e.course_id = :course_id
+        AND e.student_id != :user_id
+    """)
+    result = await db.execute(query, {"course_id": course_id, "user_id": user_data["user_id"]})
+    peers = []
+    for row in result:
+        peers.append({
+            "id": row.id,
+            "full_name": row.full_name,
+            "avatar_url": getattr(row, "avatar_url", None),
+            "role": row.role
+        })
+    return peers
 
 @router.post("/study-groups/{group_id}/join")
 async def join_study_group_endpoint(

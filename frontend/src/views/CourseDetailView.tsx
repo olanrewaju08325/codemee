@@ -30,20 +30,21 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [peers, setPeers] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Fetch specific course data, or filter from all courses
-        const [allCourses, modulesList, progressData, paymentsData, settingsData, reviewsData, groupsData] = await Promise.all([
+        const [allCourses, modulesList, progressData, paymentsData, settingsData, reviewsData, groupsData, peersData] = await Promise.all([
           apiClient.courses.getCourses(),
           apiClient.courses.getCourseModules(courseId).catch(() => []),
           apiClient.courses.getProgress().catch(() => null),
           apiClient.payments.getMyPayments(courseId).catch(() => []),
           apiClient.public.getSettings().catch(() => []),
           apiClient.courses.getCourseReviews(courseId).catch(() => []),
-          apiClient.courses.getStudyGroups(courseId).catch(() => [])
+          apiClient.courses.getStudyGroups(courseId).catch(() => []),
+          apiClient.authenticatedFetch(`/api/courses/${courseId}/peers`).catch(() => [])
         ]);
 
         const selectedCourse = allCourses.find((c: any) => c.id === courseId) || null;
@@ -74,6 +75,9 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
         }
         if (groupsData) {
           setStudyGroups(groupsData);
+        }
+        if (peersData) {
+          setPeers(peersData);
         }
       } catch (error: any) {
         console.error('Failed to load course details:', error);
@@ -225,7 +229,7 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           {/* Tabs */}
           <div style={{ display: 'flex', gap: 'var(--space-4)', borderBottom: '1px solid var(--border-default)', paddingBottom: 'var(--space-2)' }}>
-            {['overview', 'curriculum', 'enrollment', 'reviews', 'study groups'].map(tab => (
+            {['overview', 'curriculum', 'enrollment', 'reviews', 'study groups', 'peers'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -464,6 +468,34 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
                           ) : (
                             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Enroll to join</span>
                           )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+            )}
+            {activeTab === 'peers' && (
+              <Card>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+                  <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)' }}>Student Directory (Peers)</h3>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
+                  {peers.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', gridColumn: '1 / -1' }}>No peers found or you are the only one enrolled.</p>
+                  ) : (
+                    peers.map((peer, i) => (
+                      <div key={i} style={{ border: '1px solid var(--border-default)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--color-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                          {peer.avatar_url ? (
+                            <img src={peer.avatar_url} alt={peer.full_name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                          ) : (
+                            <User size={24} />
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-sm)' }}>{peer.full_name}</div>
+                          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{peer.role || 'Student'}</div>
                         </div>
                       </div>
                     ))

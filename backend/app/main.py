@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine
-from app.routers import enrollment, courses, quizzes, certificates, forum, lessons, payments, announcements, admin, notifications, push, cron, ai, analytics, health, audit_logs, database, student_dashboard, teacher_dashboard, teacher_ai, admin_dashboard, admin_users, admin_courses, admin_system, admin_monitoring, commerce, support, admin_staff, password_reset, public_config
+from app.routers import enrollment, courses, quizzes, certificates, forum, lessons, payments, announcements, admin, notifications, push, cron, ai, analytics, health, audit_logs, database, student_dashboard, teacher_dashboard, teacher_ai, admin_dashboard, admin_users, admin_courses, admin_system, admin_monitoring, commerce, support, admin_staff, password_reset, public_config, chat
 from app.routers import auth
 import logging
 
@@ -94,7 +94,7 @@ app.include_router(admin_monitoring.router)
 app.include_router(commerce.router, prefix="/api")
 app.include_router(support.router, prefix="/api")
 app.include_router(admin_staff.router)
-
+app.include_router(chat.router, prefix="/api")
 @app.on_event("startup")
 async def startup():
     pass
