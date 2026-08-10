@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Mail, Shield, Loader2, Save, Key, Camera, Award, BookOpen, Clock } from 'lucide-react';
+import { User, Mail, Shield, Loader2, Save, Key, Camera, Award, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import apiClient from '../apiClient';
 

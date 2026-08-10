@@ -15,7 +15,7 @@ export const CommunicationInboxView: React.FC<CommunicationInboxViewProps> = ({ 
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const { addToast } = useToast();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,10 +40,10 @@ export const CommunicationInboxView: React.FC<CommunicationInboxViewProps> = ({ 
     try {
       await apiClient.auth.markNotificationsRead();
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      addToast('success', 'All notifications marked as read');
+      showToast('All notifications marked as read', 'success');
     } catch (e) {
       console.error('Failed to mark read', e);
-      addToast('error', 'Failed to mark notifications as read');
+      showToast('Failed to mark notifications as read', 'error');
     }
   };
 
