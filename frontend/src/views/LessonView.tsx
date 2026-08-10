@@ -23,6 +23,9 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
   const [submissionFile, setSubmissionFile] = useState<string | null>(null)
   const [submissionFileName, setSubmissionFileName] = useState('')
   const [rawFile, setRawFile] = useState<File | null>(null)
+  const [qaList, setQaList] = useState<any[]>([])
+  const [newQuestionText, setNewQuestionText] = useState('')
+  const [qaSubmitting, setQaSubmitting] = useState(false)
   const [courseId, setCourseId] = useState<string>('wd101')
   const [pyodideReady, setPyodideReady] = useState(false)
   const [pyodideLoading, setPyodideLoading] = useState(false)
@@ -292,6 +295,10 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
           }
         }
       }
+
+      // 5. Fetch QA
+      const qaData = await apiClient.courses.getVideoQA(lessonId).catch(() => [])
+      setQaList(qaData)
     } catch (err) {
       console.error('Error fetching lesson view data:', err)
     } finally {
@@ -314,6 +321,23 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
       console.error('Error marking lesson complete:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSubmitQA = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newQuestionText.trim()) return
+    setQaSubmitting(true)
+    try {
+      const currentVideoTime = 0 // Mock timestamp for MVP
+      const newQa = await apiClient.courses.submitVideoQA(lessonId, currentVideoTime, newQuestionText)
+      setQaList([...qaList, newQa].sort((a, b) => a.timestamp_seconds - b.timestamp_seconds))
+      setNewQuestionText('')
+    } catch (err: any) {
+      console.error('Failed to post question', err)
+      alert(err.message || 'Failed to post question')
+    } finally {
+      setQaSubmitting(false)
     }
   }
 
@@ -460,6 +484,50 @@ export const LessonView: React.FC<LessonViewProps> = ({ session, lessonId, onNav
                 >
                   Your browser does not support the video tag.
                 </video>
+              </div>
+            )}
+
+            {/* Video Q&A Section */}
+            {lesson?.video_url && (
+              <div style={{ backgroundColor: 'var(--bg-primary)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', marginBottom: '20px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+                  <h4 style={{ fontWeight: 'var(--weight-bold)' }}>Q&A for this Video</h4>
+                </div>
+                
+                <form onSubmit={handleSubmitQA} style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-4)' }}>
+                  <input
+                    type="text"
+                    value={newQuestionText}
+                    onChange={(e) => setNewQuestionText(e.target.value)}
+                    placeholder="Ask a question about this timestamp..."
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                  />
+                  <button type="submit" disabled={qaSubmitting} style={{ padding: '0 16px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--color-blue)', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {qaSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                  </button>
+                </form>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  {qaList.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>No questions asked yet.</p>
+                  ) : (
+                    qaList.map((qa) => (
+                      <div key={qa.id} style={{ backgroundColor: 'var(--bg-secondary)', padding: '12px', borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--color-blue)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-sm)' }}>Student</span>
+                          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px' }}>{Math.floor(qa.timestamp_seconds / 60)}:{String(qa.timestamp_seconds % 60).padStart(2, '0')}</span>
+                        </div>
+                        <p style={{ fontSize: 'var(--text-sm)', marginBottom: qa.answer_text ? '8px' : '0' }}>{qa.question_text}</p>
+                        {qa.answer_text && (
+                          <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '8px', borderRadius: '4px', marginTop: '8px' }}>
+                            <span style={{ fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-xs)', color: '#10B981', display: 'block', marginBottom: '4px' }}>Teacher Answer:</span>
+                            <p style={{ fontSize: 'var(--text-sm)' }}>{qa.answer_text}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
 

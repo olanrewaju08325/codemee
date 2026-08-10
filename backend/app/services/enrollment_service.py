@@ -258,6 +258,22 @@ async def auto_enroll_student(
             success=False,
             message="Already enrolled in this course"
         )
+        
+    course_res = await db.execute(select(Course).where(Course.id == course_id))
+    course = course_res.scalar_one_or_none()
+    
+    if course and course.prerequisite_course_ids:
+        for prereq_id in course.prerequisite_course_ids:
+            prereq_enroll = await db.execute(
+                select(StudentEnrollment)
+                .where(StudentEnrollment.student_id == user_id)
+                .where(StudentEnrollment.course_id == prereq_id)
+            )
+            if not prereq_enroll.scalar_one_or_none():
+                return AutoEnrollResponse(
+                    success=False,
+                    message=f"You must complete course '{prereq_id}' before enrolling in this course."
+                )
     
     capacity = await get_course_capacity(db, course_id)
     if not capacity:

@@ -595,3 +595,164 @@ async def delete_course(db: AsyncSession, course_id: str) -> bool:
         delete(Course).where(Course.id == course_id)
     )
     return True
+
+async def create_course_review(
+    db: AsyncSession,
+    course_id: str,
+    student_id: str,
+    rating: int,
+    review_text: Optional[str]
+) -> CourseReviewResponse:
+    from app.models.course import CourseReview
+    from app.schemas.course import CourseReviewResponse
+    
+    # Check if review already exists
+    existing = await db.execute(
+        select(CourseReview).where(CourseReview.course_id == course_id).where(CourseReview.student_id == student_id)
+    )
+    if existing.scalar_one_or_none():
+        raise Exception("You have already reviewed this course.")
+        
+    new_review = CourseReview(
+        course_id=course_id,
+        student_id=student_id,
+        rating=rating,
+        review_text=review_text
+    )
+    db.add(new_review)
+    await db.commit()
+    await db.refresh(new_review)
+    
+    return CourseReviewResponse.model_validate(new_review)
+
+async def get_course_reviews(db: AsyncSession, course_id: str):
+    from app.models.course import CourseReview
+    from app.schemas.course import CourseReviewResponse
+    result = await db.execute(
+        select(CourseReview).where(CourseReview.course_id == course_id).order_by(CourseReview.created_at.desc())
+    )
+    reviews = result.scalars().all()
+    return [CourseReviewResponse.model_validate(r) for r in reviews]
+
+async def create_video_qa(
+    db: AsyncSession,
+    lesson_id: str,
+    student_id: str,
+    timestamp_seconds: int,
+    question_text: str
+):
+    from app.models.course import VideoQA
+    from app.schemas.course import VideoQAResponse
+    
+    new_qa = VideoQA(
+        lesson_id=lesson_id,
+        student_id=student_id,
+        timestamp_seconds=timestamp_seconds,
+        question=question_text
+    )
+    db.add(new_qa)
+    await db.commit()
+    await db.refresh(new_qa)
+    return VideoQAResponse.model_validate(new_qa)
+
+async def get_video_qa(db: AsyncSession, lesson_id: str):
+    from app.models.course import VideoQA
+    from app.schemas.course import VideoQAResponse
+    result = await db.execute(
+        select(VideoQA).where(VideoQA.lesson_id == lesson_id).order_by(VideoQA.timestamp_seconds.asc())
+    )
+    qas = result.scalars().all()
+    return [VideoQAResponse.model_validate(qa) for qa in qas]
+
+async def create_study_group(
+    db: AsyncSession,
+    course_id: str,
+    student_id: str,
+    name: str,
+    description: Optional[str]
+):
+    from app.models.course import StudyGroup, StudyGroupMember
+    from app.schemas.course import StudyGroupResponse
+    
+    new_group = StudyGroup(
+        course_id=course_id,
+        created_by=student_id,
+        name=name,
+        description=description
+    )
+    db.add(new_group)
+    await db.commit()
+    await db.refresh(new_group)
+    
+    # Add creator as member
+    new_member = StudyGroupMember(
+        group_id=new_group.id,
+        student_id=student_id
+    )
+    db.add(new_member)
+    await db.commit()
+    
+    return StudyGroupResponse(
+        id=str(new_group.id),
+        course_id=new_group.course_id,
+        name=new_group.name,
+        description=new_group.description,
+        created_by=str(new_group.created_by),
+        created_at=new_group.created_at,
+        member_count=1,
+        is_member=True
+    )
+
+async def get_study_groups(db: AsyncSession, course_id: str, student_id: str):
+    from app.models.course import StudyGroup, StudyGroupMember
+    from app.schemas.course import StudyGroupResponse
+    
+    result = await db.execute(
+        select(StudyGroup).where(StudyGroup.course_id == course_id).order_by(StudyGroup.created_at.desc())
+    )
+    groups = result.scalars().all()
+    
+    response = []
+    for g in groups:
+        # Get member count
+        member_count_res = await db.execute(
+            select(func.count()).select_from(StudyGroupMember).where(StudyGroupMember.group_id == g.id)
+        )
+        member_count = member_count_res.scalar() or 0
+        
+        # Check if current student is member
+        is_member_res = await db.execute(
+            select(StudyGroupMember).where(StudyGroupMember.group_id == g.id).where(StudyGroupMember.student_id == student_id)
+        )
+        is_member = is_member_res.scalar_one_or_none() is not None
+        
+        response.append(StudyGroupResponse(
+            id=str(g.id),
+            course_id=g.course_id,
+            name=g.name,
+            description=g.description,
+            created_by=str(g.created_by),
+            created_at=g.created_at,
+            member_count=member_count,
+            is_member=is_member
+        ))
+    return response
+
+async def join_study_group(db: AsyncSession, group_id: str, student_id: str):
+    from app.models.course import StudyGroupMember
+    existing = await db.execute(
+        select(StudyGroupMember).where(StudyGroupMember.group_id == group_id).where(StudyGroupMember.student_id == student_id)
+    )
+    if existing.scalar_one_or_none():
+        return True # already joined
+    
+    new_member = StudyGroupMember(
+        group_id=group_id,
+        student_id=student_id
+    )
+    db.add(new_member)
+    await db.commit()
+    return True
+
+
+

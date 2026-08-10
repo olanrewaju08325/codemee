@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Check, Lock, PlayCircle, FileText, HelpCircle, Trophy, Upload, User, CheckCircle } from 'lucide-react';
+import { ChevronLeft, Check, Lock, PlayCircle, FileText, HelpCircle, Trophy, Upload, User, CheckCircle, Star } from 'lucide-react';
 import apiClient from '../apiClient';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -22,18 +22,28 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
   const [activeTab, setActiveTab] = useState('overview');
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [platformSettings, setPlatformSettings] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [studyGroups, setStudyGroups] = useState<any[]>([]);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         // Fetch specific course data, or filter from all courses
-        const [allCourses, modulesList, progressData, paymentsData, settingsData] = await Promise.all([
+        const [allCourses, modulesList, progressData, paymentsData, settingsData, reviewsData, groupsData] = await Promise.all([
           apiClient.courses.getCourses(),
           apiClient.courses.getCourseModules(courseId).catch(() => []),
           apiClient.courses.getProgress().catch(() => null),
           apiClient.payments.getMyPayments(courseId).catch(() => []),
-          apiClient.public.getSettings().catch(() => [])
+          apiClient.public.getSettings().catch(() => []),
+          apiClient.courses.getCourseReviews(courseId).catch(() => []),
+          apiClient.courses.getStudyGroups(courseId).catch(() => [])
         ]);
 
         const selectedCourse = allCourses.find((c: any) => c.id === courseId) || null;
@@ -58,6 +68,13 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
         if (settingsData) {
           setPlatformSettings(settingsData);
         }
+        
+        if (reviewsData) {
+          setReviews(reviewsData);
+        }
+        if (groupsData) {
+          setStudyGroups(groupsData);
+        }
       } catch (error: any) {
         console.error('Failed to load course details:', error);
       } finally {
@@ -79,9 +96,9 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
         // Manual payment flow logic here... (in reality this would open a modal or scroll to payment section)
         setActiveTab('enrollment');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert('Failed to enroll');
+      alert(e.response?.data?.detail || e.message || 'Failed to enroll. You may be missing prerequisites.');
     } finally {
       setEnrollLoading(false);
     }
@@ -101,6 +118,53 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
       alert('Payment submission failed');
     } finally {
       setEnrollLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewText.trim()) return;
+    try {
+      setIsSubmittingReview(true);
+      const newReview = await apiClient.courses.submitCourseReview(courseId, reviewRating, reviewText);
+      setReviews([newReview, ...reviews]);
+      setReviewText('');
+      setReviewRating(5);
+      alert('Review submitted successfully!');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Failed to submit review');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const handleCreateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGroupName.trim()) return;
+    try {
+      setIsCreatingGroup(true);
+      const newGroup = await apiClient.courses.createStudyGroup(courseId, { name: newGroupName, description: newGroupDescription });
+      setStudyGroups([newGroup, ...studyGroups]);
+      setNewGroupName('');
+      setNewGroupDescription('');
+      alert('Study group created successfully!');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Failed to create group');
+    } finally {
+      setIsCreatingGroup(false);
+    }
+  };
+
+  const handleJoinGroup = async (groupId: string) => {
+    try {
+      await apiClient.courses.joinStudyGroup(groupId);
+      setStudyGroups(studyGroups.map(g => g.id === groupId ? { ...g, is_member: true, member_count: g.member_count + 1 } : g));
+      alert('Joined group successfully!');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Failed to join group');
     }
   };
 
@@ -161,7 +225,7 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           {/* Tabs */}
           <div style={{ display: 'flex', gap: 'var(--space-4)', borderBottom: '1px solid var(--border-default)', paddingBottom: 'var(--space-2)' }}>
-            {['overview', 'curriculum', 'enrollment'].map(tab => (
+            {['overview', 'curriculum', 'enrollment', 'reviews', 'study groups'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -285,6 +349,128 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
                 )}
               </Card>
             )}
+
+            {activeTab === 'reviews' && (
+              <Card>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+                  <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)' }}>Student Reviews</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)', color: '#F59E0B' }}>
+                    <Star fill="#F59E0B" /> 
+                    {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : 'New'}
+                  </div>
+                </div>
+
+                {/* Submit Review Form (Only for enrolled students) */}
+                {isEnrolled && (
+                  <form onSubmit={handleSubmitReview} style={{ backgroundColor: 'var(--bg-secondary)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                    <h4 style={{ fontWeight: 'var(--weight-bold)' }}>Leave a Review</h4>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>Rating</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <button key={star} type="button" onClick={() => setReviewRating(star)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: star <= reviewRating ? '#F59E0B' : 'var(--text-secondary)' }}>
+                            <Star fill={star <= reviewRating ? '#F59E0B' : 'none'} size={24} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>Review (Optional)</label>
+                      <textarea 
+                        value={reviewText}
+                        onChange={(e) => setReviewText(e.target.value)}
+                        placeholder="Tell others what you thought of this course..."
+                        style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', resize: 'vertical', minHeight: '80px' }}
+                      />
+                    </div>
+                    <Button type="submit" isLoading={isSubmittingReview}>Submit Review</Button>
+                  </form>
+                )}
+
+                {/* Reviews List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  {reviews.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: 'var(--space-4)' }}>No reviews yet. Be the first to leave one!</p>
+                  ) : (
+                    reviews.map((review: any) => (
+                      <div key={review.id} style={{ borderBottom: '1px solid var(--border-default)', paddingBottom: 'var(--space-4)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <div style={{ fontWeight: 'var(--weight-bold)', fontSize: 'var(--text-sm)' }}>Student</div>
+                          <div style={{ display: 'flex', color: '#F59E0B' }}>
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} size={14} fill={i < review.rating ? '#F59E0B' : 'none'} color={i < review.rating ? '#F59E0B' : 'var(--text-secondary)'} />
+                            ))}
+                          </div>
+                        </div>
+                        {review.review_text && (
+                          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{review.review_text}</p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {activeTab === 'study groups' && (
+              <Card>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+                  <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-bold)' }}>Study Groups</h3>
+                  {isEnrolled && (
+                    <Button variant="outline" size="sm" onClick={() => setIsCreatingGroup(!isCreatingGroup)}>
+                      {isCreatingGroup ? 'Cancel' : 'Create Group'}
+                    </Button>
+                  )}
+                </div>
+
+                {isCreatingGroup && isEnrolled && (
+                  <form onSubmit={handleCreateGroup} style={{ backgroundColor: 'var(--bg-secondary)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>Group Name</label>
+                      <input 
+                        type="text" 
+                        value={newGroupName} 
+                        onChange={e => setNewGroupName(e.target.value)} 
+                        style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} 
+                        required 
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>Description</label>
+                      <textarea 
+                        value={newGroupDescription} 
+                        onChange={e => setNewGroupDescription(e.target.value)} 
+                        style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', resize: 'vertical', minHeight: '80px' }} 
+                      />
+                    </div>
+                    <Button type="submit">Create Group</Button>
+                  </form>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-4)' }}>
+                  {studyGroups.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', gridColumn: '1 / -1' }}>No study groups available yet.</p>
+                  ) : (
+                    studyGroups.map(group => (
+                      <div key={group.id} style={{ border: '1px solid var(--border-default)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-secondary)' }}>
+                        <h4 style={{ fontWeight: 'var(--weight-bold)', marginBottom: '8px' }}>{group.name}</h4>
+                        {group.description && <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '12px' }}>{group.description}</p>}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{group.member_count} members</span>
+                          {group.is_member ? (
+                            <span style={{ fontSize: 'var(--text-xs)', color: '#10B981', fontWeight: 'var(--weight-bold)' }}>Joined</span>
+                          ) : isEnrolled ? (
+                            <Button size="sm" onClick={() => handleJoinGroup(group.id)}>Join</Button>
+                          ) : (
+                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>Enroll to join</span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+            )}
           </motion.div>
         </div>
 
@@ -310,9 +496,17 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({ session, cou
                   </Button>
                 </div>
               ) : (
-                <Button fullWidth onClick={() => { setActiveTab('enrollment'); window.scrollTo({ top: 300, behavior: 'smooth' }); }}>
-                  {isFree ? 'Enroll Now' : 'Pay & Enroll'}
-                </Button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  {course.prerequisite_course_ids && course.prerequisite_course_ids.length > 0 && (
+                    <div style={{ padding: '12px', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#d97706', borderRadius: '8px', fontSize: '13px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <Lock size={16} style={{ marginTop: '2px', flexShrink: 0 }} />
+                      <span><strong>Prerequisites Required:</strong> You must be enrolled in {course.prerequisite_course_ids.join(', ')} before starting this course.</span>
+                    </div>
+                  )}
+                  <Button fullWidth onClick={() => { setActiveTab('enrollment'); window.scrollTo({ top: 300, behavior: 'smooth' }); }}>
+                    {isFree ? 'Enroll Now' : 'Pay & Enroll'}
+                  </Button>
+                </div>
               )}
             </div>
             

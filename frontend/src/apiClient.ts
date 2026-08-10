@@ -188,6 +188,30 @@ export const coursesAPI = {
     if (!response.ok) throw new Error('Failed to fetch courses');
     return response.json();
   },
+
+  getStudyGroups: async (courseId: string) => {
+    const response = await authenticatedFetch(`/api/courses/${courseId}/study-groups`);
+    if (!response.ok) throw new Error('Failed to fetch study groups');
+    return response.json();
+  },
+
+  createStudyGroup: async (courseId: string, data: { name: string, description?: string }) => {
+    const response = await authenticatedFetch(`/api/courses/${courseId}/study-groups`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create study group');
+    return response.json();
+  },
+
+  joinStudyGroup: async (groupId: string) => {
+    const response = await authenticatedFetch(`/api/courses/study-groups/${groupId}/join`, {
+      method: 'POST'
+    });
+    if (!response.ok) throw new Error('Failed to join study group');
+    return response.json();
+  },
+
   
   getCourseModules: async (courseId: string) => {
     const response = await authenticatedFetch(`/api/courses/${courseId}/modules`);
@@ -258,6 +282,25 @@ export const coursesAPI = {
     if (!response.ok) throw new Error('Failed to fetch lesson');
     return response.json();
   },
+
+  getVideoQA: async (lessonId: string) => {
+    const response = await authenticatedFetch(`/api/lessons/${lessonId}/qa`);
+    if (!response.ok) throw new Error('Failed to fetch video QA');
+    return response.json();
+  },
+
+  submitVideoQA: async (lessonId: string, timestamp_seconds: number, question_text: string) => {
+    const response = await authenticatedFetch(`/api/lessons/${lessonId}/qa`, {
+      method: 'POST',
+      body: JSON.stringify({ timestamp_seconds, question_text })
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.detail || 'Failed to submit question');
+    }
+    return response.json();
+  },
+
   
   getProgress: async () => {
     const response = await authenticatedFetch('/api/progress');
@@ -323,6 +366,24 @@ export const coursesAPI = {
     if (!response.ok) throw new Error('Failed to fetch badges');
     return response.json();
   },
+
+  getCourseReviews: async (courseId: string) => {
+    const response = await authenticatedFetch(`/api/courses/${courseId}/reviews`);
+    if (!response.ok) throw new Error('Failed to fetch reviews');
+    return response.json();
+  },
+
+  submitCourseReview: async (courseId: string, rating: number, review_text?: string) => {
+    const response = await authenticatedFetch(`/api/courses/${courseId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify({ rating, review_text })
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.detail || 'Failed to submit review');
+    }
+    return response.json();
+  }
 };
 
 export const adminCourseAPI = {

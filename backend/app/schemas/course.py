@@ -20,6 +20,7 @@ class CourseResponse(BaseModel):
     status: str = "draft"
     delivery_mode: str = "hybrid"
     payment_required: bool = True
+    prerequisite_course_ids: Optional[List[str]] = []
     created_at: datetime
     
     class Config:
@@ -42,6 +43,7 @@ class CourseCreate(BaseModel):
     status: str = "draft"
     delivery_mode: str = "hybrid"
     payment_required: bool = True
+    prerequisite_course_ids: Optional[List[str]] = []
 
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
@@ -59,6 +61,7 @@ class CourseUpdate(BaseModel):
     status: Optional[str] = None
     delivery_mode: Optional[str] = None
     payment_required: Optional[bool] = None
+    prerequisite_course_ids: Optional[List[str]] = None
 
 # Module schemas
 class ModuleResponse(BaseModel):
@@ -169,7 +172,61 @@ class AssignmentSubmissionResponse(BaseModel):
     graded_by: Optional[str]
     graded_at: Optional[datetime]
     created_at: datetime
+    updated_at: Optional[datetime] = None
     is_ai_flagged: bool
+    
+    class Config:
+        from_attributes = True
+
+# Video QA schemas
+class VideoQACreate(BaseModel):
+    timestamp_seconds: int = 0
+    question: str
+
+class VideoQAResponse(BaseModel):
+    id: str
+    lesson_id: str
+    student_id: str
+    timestamp_seconds: int
+    question: str
+    answer: Optional[str] = None
+    answered_by: Optional[str] = None
+    created_at: datetime
+    answered_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+# Course Review schemas
+class CourseReviewCreate(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    review_text: Optional[str] = None
+
+class CourseReviewResponse(BaseModel):
+    id: str
+    course_id: str
+    student_id: str
+    rating: int
+    review_text: Optional[str]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# Study Group schemas
+class StudyGroupCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class StudyGroupResponse(BaseModel):
+    id: str
+    course_id: str
+    name: str
+    description: Optional[str]
+    created_by: str
+    created_at: datetime
+    member_count: int = 0
+    is_member: bool = False
     
     class Config:
         from_attributes = True

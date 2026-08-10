@@ -65,7 +65,13 @@ from app.schemas.course import (
     StudentProgressResponse,
     AssignmentSubmissionResponse,
     AssignmentSubmissionCreate,
-    AssignmentSubmissionUpdate
+    AssignmentSubmissionUpdate,
+    CourseReviewResponse,
+    CourseReviewCreate,
+    VideoQAResponse,
+    VideoQACreate,
+    StudyGroupResponse,
+    StudyGroupCreate
 )
 from app.schemas.live_class import (
     LiveClassScheduleResponse,
@@ -590,3 +596,107 @@ async def get_badges(
     """
     badges = await get_all_badges(db)
     return badges
+
+# Course Reviews endpoints
+@router.post("/courses/{course_id}/reviews", response_model=CourseReviewResponse)
+async def submit_course_review(
+    course_id: str,
+    review_data: CourseReviewCreate,
+    user_data: Dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    from app.services.course_service import create_course_review
+    try:
+        review = await create_course_review(
+            db=db,
+            course_id=course_id,
+            student_id=user_data["user_id"],
+            rating=review_data.rating,
+            review_text=review_data.review_text
+        )
+        return review
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/courses/{course_id}/reviews", response_model=List[CourseReviewResponse])
+async def list_course_reviews(
+    course_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.services.course_service import get_course_reviews
+    reviews = await get_course_reviews(db, course_id)
+    return reviews
+
+# Video QA endpoints
+@router.post("/lessons/{lesson_id}/qa", response_model=VideoQAResponse)
+async def submit_video_qa(
+    lesson_id: str,
+    qa_data: VideoQACreate,
+    user_data: Dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    from app.services.course_service import create_video_qa
+    try:
+        qa = await create_video_qa(
+            db=db,
+            lesson_id=lesson_id,
+            student_id=user_data["user_id"],
+            timestamp_seconds=qa_data.timestamp_seconds,
+            question_text=qa_data.question_text
+        )
+        return qa
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/lessons/{lesson_id}/qa", response_model=List[VideoQAResponse])
+async def list_video_qa(
+    lesson_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.services.course_service import get_video_qa
+    qas = await get_video_qa(db, lesson_id)
+    return qas
+
+# Study Group endpoints
+@router.post("/{course_id}/study-groups", response_model=StudyGroupResponse)
+async def create_study_group_endpoint(
+    course_id: str,
+    group_data: StudyGroupCreate,
+    user_data: Dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    from app.services.course_service import create_study_group
+    try:
+        group = await create_study_group(
+            db=db,
+            course_id=course_id,
+            student_id=user_data["user_id"],
+            name=group_data.name,
+            description=group_data.description
+        )
+        return group
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/{course_id}/study-groups", response_model=List[StudyGroupResponse])
+async def list_study_groups(
+    course_id: str,
+    user_data: Dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    from app.services.course_service import get_study_groups
+    groups = await get_study_groups(db, course_id, user_data["user_id"])
+    return groups
+
+@router.post("/study-groups/{group_id}/join")
+async def join_study_group_endpoint(
+    group_id: str,
+    user_data: Dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    from app.services.course_service import join_study_group
+    try:
+        success = await join_study_group(db, group_id, user_data["user_id"])
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

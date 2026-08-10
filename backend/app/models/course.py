@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, Text, Boolean, ForeignKey, Numeric
+from sqlalchemy import Column, String, Integer, DateTime, Text, Boolean, ForeignKey, Numeric, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -28,6 +28,7 @@ class Course(Base):
     payment_required = Column(Boolean, default=True, nullable=False)
     installments_enabled = Column(Boolean, default=False, nullable=False)
     access_duration_days = Column(Integer, nullable=True)
+    prerequisite_course_ids = Column(JSON, nullable=True, default=[])
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 class Module(Base):
@@ -100,3 +101,45 @@ class AssignmentSubmission(Base):
     graded_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     is_ai_flagged = Column(Boolean, default=False, nullable=False)
+
+class CourseReview(Base):
+    __tablename__ = "course_reviews"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    course_id = Column(String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    student_id = Column(UUID(as_uuid=True), nullable=False)  # Foreign key to profiles.id
+    rating = Column(Integer, nullable=False)
+    review_text = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    
+    # Note: UNIQUE(course_id, student_id) is enforced at the database level
+
+class VideoQA(Base):
+    __tablename__ = "video_qa"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    lesson_id = Column(String, ForeignKey("lessons.id", ondelete="CASCADE"), nullable=False)
+    student_id = Column(UUID(as_uuid=True), nullable=False)  # Foreign key to profiles.id
+    timestamp_seconds = Column(Integer, nullable=False, default=0)
+    question = Column(Text, nullable=False)
+    answer = Column(Text, nullable=True)
+    answered_by = Column(UUID(as_uuid=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    answered_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+
+class StudyGroup(Base):
+    __tablename__ = "study_groups"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    course_id = Column(String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    created_by = Column(UUID(as_uuid=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+class StudyGroupMember(Base):
+    __tablename__ = "study_group_members"
+    
+    group_id = Column(UUID(as_uuid=True), ForeignKey("study_groups.id", ondelete="CASCADE"), primary_key=True)
+    student_id = Column(UUID(as_uuid=True), primary_key=True)
+    joined_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
