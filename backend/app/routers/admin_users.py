@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.security import require_role
 from app.models.profile import Profile
 from app.services.admin_service import admin_delete_user, admin_create_user
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/admin/users", tags=["Admin Operations"])
 
@@ -23,7 +23,7 @@ async def get_users(
     ]
 
 class CreateUserRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     full_name: str
     role: str
