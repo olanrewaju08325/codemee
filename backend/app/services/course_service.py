@@ -588,3 +588,10 @@ async def update_assignment_submission(
         created_at=submission.created_at,
         is_ai_flagged=submission.is_ai_flagged
     )
+
+async def delete_course(db: AsyncSession, course_id: str) -> bool:
+    """Delete a course completely."""
+    await db.execute(
+        delete(Course).where(Course.id == course_id)
+    )
+    return True
