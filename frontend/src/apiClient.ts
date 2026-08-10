@@ -1100,8 +1100,11 @@ export const analyticsAPI = {
 export const systemAPI = {
   getHealth: async () => {
     const response = await authenticatedFetch('/api/health');
-    if (!response.ok) throw new Error('Failed to fetch system health');
-    return response.json();
+    if (!response.ok && response.status !== 503) {
+      throw new Error('Failed to fetch system health');
+    }
+    const data = await response.json();
+    return response.status === 503 ? data.detail || data : data;
   },
   getMonitoringHealth: async () => {
     const response = await authenticatedFetch('/api/admin/monitoring/health');

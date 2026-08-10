@@ -4,7 +4,9 @@ import apiClient from '../apiClient'
 import {
   BookOpen, Users, Bell, CheckSquare, PenTool, Loader2,
   Video, Send, BarChart2, GraduationCap, Plus, Eye, Clock, Upload, Trash2, Zap, XCircle, Paperclip, Flame
+  Video, Send, BarChart2, GraduationCap, Plus, Eye, Clock, Upload, Trash2, Zap, XCircle, Paperclip, Flame, MessageSquare
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ContentManager } from './ContentManager'
 import { AIChatInterface } from '../components/ui/AIChatInterface'
 
@@ -245,27 +247,31 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ session }) =
   ]
 
   return (
-    <div className="full-screen-view" style={{ paddingBottom: '80px' }}>
+    <div className="min-h-screen bg-[var(--bg-primary)] p-4 sm:p-8 overflow-y-auto" style={{ paddingBottom: '80px' }}>
+      <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="gradient-card" style={{ padding: '20px', marginBottom: '16px', borderRadius: '16px', background: 'linear-gradient(135deg, #1b1030, #0c0a1e)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #8B5CF6, #6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <GraduationCap size={24} color="#fff" />
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 p-8 shadow-2xl"
+      >
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner">
+              <GraduationCap size={32} className="text-white drop-shadow-md" />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>Teacher Panel</h2>
-              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>
-                {profile?.full_name} · {profile?.student_id || 'Instructor'}
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Teacher Console</h2>
+              <p className="text-blue-100 font-medium mt-1 flex items-center gap-2">
+                {profile?.full_name} <span className="opacity-50">•</span> {profile?.student_id || 'Instructor'}
               </p>
             </div>
           </div>
           <button 
             onClick={() => setShowAIAssistant(true)}
-            className="btn btn-primary"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            className="flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all"
           >
-            <Zap size={16} />
+            <Zap size={18} className="fill-purple-600" />
             AI Assistant
           </button>
         </div>
@@ -313,20 +319,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ session }) =
         )}
 
         {/* Stats Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '16px' }}>
+        <div className="relative z-10 grid grid-cols-3 gap-4 mt-8">
           {[
-            { label: 'Courses', value: courses.length, icon: BookOpen },
-            { label: 'Students', value: students.length, icon: Users },
+            { label: 'Assigned Courses', value: courses.length, icon: BookOpen },
+            { label: 'Total Students', value: students.length, icon: Users },
             { label: 'To Grade', value: pendingSubmissions.length, icon: PenTool },
           ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="card" style={{ textAlign: 'center', padding: '12px 8px', background: 'rgba(255,255,255,0.06)' }}>
-              <Icon size={18} style={{ color: 'var(--color-purple)', marginBottom: '4px' }} />
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>{value}</div>
-              <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)', marginTop: '2px' }}>{label}</div>
+            <div key={label} className="flex flex-col items-center justify-center p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl">
+              <Icon size={24} className="text-purple-200 mb-2" />
+              <div className="text-2xl sm:text-3xl font-black text-white">{value}</div>
+              <div className="text-xs sm:text-sm font-medium text-purple-200 mt-1 text-center">{label}</div>
             </div>
           ))}
         </div>
-      </div>
+        
+        {/* Decor */}
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
+      </motion.div>
 
       {/* Notifications / message */}
       {message && (
@@ -336,17 +346,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ session }) =
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '16px' }}>
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key as any)}
-            className={`badge ${activeTab === key ? 'badge-purple' : ''}`}
-            style={{ cursor: 'pointer', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', flexShrink: 0 }}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold whitespace-nowrap transition-all ${activeTab === key ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' : 'bg-[var(--surface-dark)] text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}
           >
-            <Icon size={13} /> {label}
+            <Icon size={18} /> {label}
             {key === 'gradebook' && pendingSubmissions.length > 0 && (
-              <span style={{ background: '#EF4444', color: '#fff', borderRadius: '9999px', padding: '0 5px', fontSize: '0.65rem', fontWeight: 700 }}>
+              <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
                 {pendingSubmissions.length}
               </span>
             )}
@@ -407,108 +416,176 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ session }) =
 
       {/* ── GRADEBOOK TAB ── */}
       {activeTab === 'gradebook' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {selectedSubmission ? (
-            <form onSubmit={handleGradeSubmission} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <h3 style={{ fontWeight: 700 }}>Grade Submission</h3>
-              <div className="card" style={{ background: 'var(--bg-secondary)', fontSize: '0.82rem' }}>
-                <p><strong>Student:</strong> {selectedSubmission.profiles?.full_name} ({selectedSubmission.profiles?.student_id})</p>
-                <p><strong>Assignment:</strong> {selectedSubmission.assignments?.title}</p>
-                {selectedSubmission.submission_file && (
-                  <a href={selectedSubmission.submission_file} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-blue)', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '6px', fontSize: '0.8rem' }}>
-                    <Paperclip size={14} /> View Submitted File
-                  </a>
-                )}
-                {selectedSubmission.submission_text && (
-                  <pre style={{ marginTop: '8px', padding: '10px', background: '#0d0d1a', borderRadius: '8px', fontSize: '0.75rem', overflowX: 'auto', color: '#a5f3fc', maxHeight: '200px' }}>
-                    {selectedSubmission.submission_text}
-                  </pre>
-                )}
+        <div className="flex flex-col lg:flex-row gap-6 mt-6 min-h-[600px]">
+          
+          {/* Left Pane: Pending Queue */}
+          <div className="lg:w-1/3 flex flex-col gap-4 bg-[var(--surface-dark)] border border-[var(--border)] rounded-2xl p-4 h-[600px] overflow-y-auto">
+            <h3 className="font-bold text-lg sticky top-0 bg-[var(--surface-dark)] pb-2 z-10 border-b border-[var(--border)] flex items-center justify-between">
+              Pending Queue
+              <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full">{pendingSubmissions.length} left</span>
+            </h3>
+            
+            {pendingSubmissions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-[var(--muted)] opacity-60">
+                <CheckSquare size={48} className="mb-4" />
+                <p>All submissions graded!</p>
               </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>AI ASSISTED REVIEW</label>
-                {aiDraft ? (
-                  <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>Draft ready · score {aiDraft.score ?? '—'}/100</span>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleGenerateAiReview}
-                    disabled={aiLoading}
-                    style={{ fontSize: '0.75rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+            ) : (
+              <div className="space-y-2">
+                {pendingSubmissions.map(sub => (
+                  <div 
+                    key={sub.id} 
+                    onClick={() => { setSelectedSubmission(sub); setAiDraft(null); }}
+                    className={`p-3 rounded-xl cursor-pointer transition-all border ${selectedSubmission?.id === sub.id ? 'bg-purple-600/20 border-purple-500 shadow-md' : 'bg-[var(--surface)] border-[var(--border)] hover:border-purple-500/50'}`}
                   >
-                    {aiLoading ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />} Generate AI Review
-                  </button>
-                )}
-              </div>
-
-              {aiDraft && (
-                <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)' }}>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                    AI draft — edit below, then release. You remain in control of the final grade.
-                  </p>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={aiFlagVal} onChange={e => setAiFlagVal(e.target.checked)} />
-                    Flag as suspected AI-generated
-                  </label>
-                </div>
-              )}
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>STATUS</label>
-                <select className="input-field" value={gradeVal} onChange={e => setGradeVal(e.target.value)} required>
-                  <option value="">Select status...</option>
-                  <option value="approved">Approved (pass)</option>
-                  <option value="rejected">Rejected (needs revision)</option>
-                </select>
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>FEEDBACK (shown to the student)</label>
-                <textarea className="input-field" placeholder="Great job on the structure! Consider improving..." value={feedbackVal} onChange={e => setFeedbackVal(e.target.value)} style={{ minHeight: '80px' }} required />
-              </div>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button type="submit" className="btn btn-primary" disabled={gradeLoading}>
-                  {gradeLoading ? <Loader2 size={14} className="animate-spin" /> : 'Submit Grade'}
-                </button>
-                {aiDraft && (
-                  <button type="button" className="btn btn-primary" disabled={gradeLoading} style={{ background: 'var(--color-purple)' }} onClick={handleReleaseAiGrade}>
-                    {gradeLoading ? <Loader2 size={14} className="animate-spin" /> : 'Release AI Grade'}
-                  </button>
-                )}
-                <button type="button" className="btn btn-secondary" onClick={() => setSelectedSubmission(null)}>Cancel</button>
-              </div>
-            </form>
-          ) : (
-            <>
-              <h3 style={{ fontWeight: 700 }}>All Pending Submissions</h3>
-              {pendingSubmissions.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '32px' }}>
-                  <CheckSquare size={32} style={{ marginBottom: '8px', opacity: 0.4 }} />
-                  <p>All submissions graded! Great work.</p>
-                </div>
-              ) : (
-                pendingSubmissions.map(sub => (
-                  <div key={sub.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontWeight: 600, fontSize: '0.88rem' }}>{sub.profiles?.full_name}</p>
-                      <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{sub.assignments?.title}</p>
-                      <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '3px' }}>
-                        <Clock size={11} /> {new Date(sub.created_at).toLocaleDateString()}
-                      </p>
+                    <div className="font-bold text-[var(--text-primary)] text-sm truncate mb-1">
+                      {sub.profiles?.full_name || 'Unknown Student'}
                     </div>
-                    <button
-                      onClick={() => { setSelectedSubmission(sub); setAiDraft(null) }}
-                      className="btn"
-                      style={{ fontSize: '0.75rem', padding: '6px 12px', background: 'var(--color-purple)', color: '#fff', flexShrink: 0 }}
-                    >
-                      Grade
-                    </button>
+                    <div className="text-xs text-[var(--muted)] truncate">
+                      {sub.assignments?.title || 'Unknown Assignment'}
+                    </div>
                   </div>
-                ))
-              )}
-            </>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right Pane: Grading Interface */}
+          <div className="lg:w-2/3 bg-[var(--surface-dark)] border border-[var(--border)] rounded-2xl flex flex-col overflow-hidden h-[600px]">
+            {selectedSubmission ? (
+              <form onSubmit={handleGradeSubmission} className="flex flex-col h-full">
+                
+                {/* Grading Header */}
+                <div className="p-6 border-b border-[var(--border)] bg-gradient-to-r from-[var(--surface)] to-[var(--surface-dark)]">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-black text-xl text-white">Review Submission</h3>
+                    <button type="button" onClick={() => setSelectedSubmission(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><XCircle size={20} /></button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm bg-black/20 p-4 rounded-xl border border-white/5">
+                    <div>
+                      <span className="text-[var(--muted)] block text-xs uppercase tracking-wider mb-1">Student</span>
+                      <strong className="text-white">{selectedSubmission.profiles?.full_name}</strong> <span className="opacity-60">({selectedSubmission.profiles?.student_id})</span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--muted)] block text-xs uppercase tracking-wider mb-1">Assignment</span>
+                      <strong className="text-purple-300">{selectedSubmission.assignments?.title}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grading Body (Scrollable) */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  
+                  {/* Submission Content */}
+                  <div>
+                    <h4 className="text-sm font-bold uppercase tracking-wider text-[var(--muted)] mb-3 flex items-center gap-2"><Paperclip size={16}/> Student Work</h4>
+                    
+                    {selectedSubmission.submission_file && (
+                      <a href={selectedSubmission.submission_file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-3 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl transition-colors mb-4">
+                        <Upload size={16} /> Download Submitted File
+                      </a>
+                    )}
+                    
+                    {selectedSubmission.submission_text && (
+                      <div className="bg-[#0A0A14] p-4 rounded-xl border border-[#1f1f38] shadow-inner font-mono text-sm text-cyan-100/90 max-h-[250px] overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                        {selectedSubmission.submission_text}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="h-px w-full bg-[var(--border)]"></div>
+
+                  {/* AI Assistant Section */}
+                  <div className="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10"><Zap size={100} /></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-4">
+                        <label className="font-bold text-purple-300 flex items-center gap-2 uppercase text-sm tracking-wide">
+                          <Zap size={16} className="fill-purple-400" /> AI Auto-Review
+                        </label>
+                        {aiDraft ? (
+                          <span className="bg-purple-600/30 text-purple-200 px-3 py-1 rounded-full text-xs font-bold border border-purple-500/50 shadow-sm">Score: {aiDraft.score ?? '—'}/100</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleGenerateAiReview}
+                            disabled={aiLoading}
+                            className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50 shadow-md hover:shadow-purple-500/25"
+                          >
+                            {aiLoading ? <Loader2 size={16} className="animate-spin" /> : 'Generate Analysis'}
+                          </button>
+                        )}
+                      </div>
+
+                      <AnimatePresence>
+                        {aiDraft && (
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
+                            <p className="text-sm text-purple-200/80 leading-relaxed">
+                              The AI has drafted a review. You can edit the feedback below before releasing the grade. You retain complete control.
+                            </p>
+                            <label className="flex items-center gap-3 p-3 bg-black/20 rounded-lg cursor-pointer border border-white/5 hover:bg-black/30 transition-colors w-max">
+                              <input type="checkbox" checked={aiFlagVal} onChange={e => setAiFlagVal(e.target.checked)} className="w-4 h-4 rounded border-purple-500 bg-black text-purple-500 focus:ring-purple-500 focus:ring-offset-black" />
+                              <span className="text-sm font-medium text-red-300 flex items-center gap-2"><Flame size={16}/> Flag as suspected AI-generated</span>
+                            </label>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  {/* Manual Grading Inputs */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold mb-2 uppercase tracking-wide text-[var(--muted)]">Final Status</label>
+                      <select 
+                        className="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors appearance-none" 
+                        value={gradeVal} 
+                        onChange={e => setGradeVal(e.target.value)} 
+                        required
+                      >
+                        <option value="">Select final verdict...</option>
+                        <option value="approved">✅ Approved (Pass)</option>
+                        <option value="rejected">❌ Rejected (Needs Revision)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 uppercase tracking-wide text-[var(--muted)]">Feedback to Student</label>
+                      <textarea 
+                        className="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors min-h-[120px] resize-y leading-relaxed placeholder-[var(--muted)]" 
+                        placeholder="Great job on the structure! Consider improving..." 
+                        value={feedbackVal} 
+                        onChange={e => setFeedbackVal(e.target.value)} 
+                        required 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grading Footer (Sticky) */}
+                <div className="p-4 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-end gap-3 shrink-0">
+                  <button type="button" className="px-5 py-2.5 rounded-xl font-medium hover:bg-white/5 text-[var(--text-secondary)] hover:text-white transition-colors" onClick={() => setSelectedSubmission(null)}>Cancel</button>
+                  {aiDraft && (
+                    <button type="button" disabled={gradeLoading} onClick={handleReleaseAiGrade} className="px-5 py-2.5 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-2 transition-all shadow-lg hover:shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed">
+                      {gradeLoading ? <Loader2 size={18} className="animate-spin" /> : 'Release AI Grade'}
+                    </button>
+                  )}
+                  <button type="submit" disabled={gradeLoading} className="px-5 py-2.5 rounded-xl font-bold bg-green-600 hover:bg-green-500 text-white flex items-center gap-2 transition-all shadow-lg hover:shadow-green-500/25 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {gradeLoading ? <Loader2 size={18} className="animate-spin" /> : <><CheckSquare size={18}/> Submit Grade</>}
+                  </button>
+                </div>
+
+              </form>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center p-12">
+                <div className="w-24 h-24 rounded-full bg-purple-500/10 flex items-center justify-center mb-6 border border-purple-500/20">
+                  <PenTool size={40} className="text-purple-400" />
+                </div>
+                <h3 className="text-2xl font-black text-white mb-2">Select a Submission</h3>
+                <p className="text-[var(--muted)] max-w-md">Click on any pending student submission from the queue on the left to review their work, run AI analysis, and assign a final grade.</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

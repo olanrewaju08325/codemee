@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, Ban, Key, X, RefreshCw, Copy, Check, Loader2, Eye, User as UserIcon, Mail } from "lucide-react";
+import { Search, Ban, Key, X, RefreshCw, Copy, Check, Loader2, Eye, User as UserIcon, Mail, ShieldAlert } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import apiClient from "../../apiClient";
 
 const genTempPassword = (): string => {
@@ -170,48 +171,54 @@ export const UserManagementTable = ({ roleFilter }: { roleFilter?: 'student' | '
       {loading ? (
         <div className="p-8 text-center text-[var(--muted)]">Loading directory...</div>
       ) : (
-        <table className="w-full text-sm text-left">
-          <thead className="text-[var(--muted)] bg-[var(--surface-dark)] border-b border-[var(--border)]">
-            <tr>
-              <th className="px-6 py-4 font-semibold text-xs tracking-wider">User Details</th>
-              <th className="px-6 py-4 font-semibold text-xs tracking-wider">Role</th>
-              <th className="px-6 py-4 font-semibold text-xs tracking-wider text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border)]">
-            {filteredUsers.map((u) => (
-              <tr key={u.id} className="hover:bg-[var(--surface)] transition-colors group">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => setQuickViewTarget(u)}>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500/20 to-purple-500/20 border border-[var(--border)] flex items-center justify-center text-[var(--primary)] font-bold shadow-inner">
-                      {u.full_name ? u.full_name.charAt(0).toUpperCase() : <UserIcon size={18}/>}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors">{u.full_name || 'Anonymous User'}</div>
-                      <div className="text-xs text-[var(--muted)] flex items-center gap-1 mt-0.5"><Mail size={12}/> {u.email}</div>
-                    </div>
+        <div className="flex flex-col gap-3 mt-4">
+          <AnimatePresence>
+            {filteredUsers.map((u, i) => (
+              <motion.div 
+                key={u.id} 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2, delay: i * 0.03 }}
+                className="flex items-center justify-between p-4 bg-[var(--surface-dark)] border border-[var(--border)] rounded-2xl hover:border-[var(--primary)] hover:shadow-lg transition-all group"
+              >
+                <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => setQuickViewTarget(u)}>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-500/20 to-purple-500/20 border border-[var(--border)] flex items-center justify-center text-[var(--primary)] font-bold shadow-inner group-hover:scale-105 transition-transform">
+                    {u.full_name ? u.full_name.charAt(0).toUpperCase() : <UserIcon size={20}/>}
                   </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${u.role === "admin" ? "bg-red-500/10 text-red-400 border-red-500/20" : u.role === "teacher" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"}`}>
-                    {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                  <div>
+                    <div className="font-bold text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors text-base">{u.full_name || 'Anonymous User'}</div>
+                    <div className="text-sm text-[var(--muted)] flex items-center gap-1.5 mt-1"><Mail size={14}/> {u.email}</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-6">
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-bold border tracking-wide uppercase ${u.role === "admin" ? "bg-red-500/10 text-red-400 border-red-500/30" : u.role === "teacher" ? "bg-purple-500/10 text-purple-400 border-purple-500/30" : "bg-blue-500/10 text-blue-400 border-blue-500/30"}`}>
+                    {u.role}
                   </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => setQuickViewTarget(u)} className="p-2 rounded-lg bg-[var(--surface-dark)] border border-[var(--border)] hover:bg-[var(--bg-main)] text-[var(--text-primary)] transition-all" title="View Details"><Eye size={16}/></button>
-                    <button onClick={() => openReset(u)} className="p-2 rounded-lg bg-[var(--surface-dark)] border border-[var(--border)] hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/20 text-[var(--text-primary)] transition-all" title="Reset Password"><Key size={16}/></button>
-                    <button onClick={() => handleDelete(u.id, u.full_name)} className="p-2 rounded-lg bg-[var(--surface-dark)] border border-[var(--border)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 text-[var(--text-primary)] transition-all" title="Delete User"><Ban size={16}/></button>
+                  
+                  <div className="flex items-center gap-2">
+                    <button onClick={(e) => { e.stopPropagation(); openReset(u); }} className="p-2 rounded-xl bg-[var(--surface)] hover:bg-yellow-500/20 text-[var(--text-primary)] hover:text-yellow-400 transition-colors tooltip" title="Reset Password">
+                      <Key size={16} />
+                    </button>
+                    {u.role !== 'admin' && (
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(u.id, u.full_name || u.email); }} className="p-2 rounded-xl bg-[var(--surface)] hover:bg-red-500/20 text-[var(--text-primary)] hover:text-red-400 transition-colors tooltip" title="Delete User">
+                        <Ban size={16} />
+                      </button>
+                    )}
                   </div>
-                </td>
-              </tr>
+                </div>
+              </motion.div>
             ))}
-            {filteredUsers.length === 0 && (
-              <tr><td colSpan={3} className="p-12 text-center text-[var(--muted)]">No users found in this directory.</td></tr>
-            )}
-          </tbody>
-        </table>
-      )}
+          </AnimatePresence>
+          {filteredUsers.length === 0 && (
+            <div className="p-12 text-center border border-[var(--border)] rounded-2xl bg-[var(--surface-dark)] text-[var(--muted)] flex flex-col items-center gap-3">
+              <ShieldAlert size={40} className="text-[var(--border)]" />
+              <p>No users found matching your search.</p>
+            </div>
+          )}
+        </div>
+
 
       {/* Quick View Modal */}
       {quickViewTarget && (

@@ -18,6 +18,10 @@ from app.models.admin_setting import AdminSetting
 
 SUPPORT_WHATSAPP_KEY = "support_whatsapp"
 SUPPORT_EMAIL_KEY = "support_email"
+PAYMENT_BANK_NAME = "PAYMENT_BANK_NAME"
+PAYMENT_ACCOUNT_NAME = "PAYMENT_ACCOUNT_NAME"
+PAYMENT_ACCOUNT_NUMBER = "PAYMENT_ACCOUNT_NUMBER"
+PAYMENT_INSTRUCTIONS = "PAYMENT_INSTRUCTIONS"
 
 # key -> (default value, human description shown in the admin Settings tab)
 MANAGED_SETTINGS: dict[str, dict[str, str]] = {
@@ -31,6 +35,22 @@ MANAGED_SETTINGS: dict[str, dict[str, str]] = {
     SUPPORT_EMAIL_KEY: {
         "default": "admitwise2@gmail.com",
         "description": "Support email address shown to students.",
+    },
+    PAYMENT_BANK_NAME: {
+        "default": "CodeMe Academy Bank",
+        "description": "Bank name for manual course payments.",
+    },
+    PAYMENT_ACCOUNT_NAME: {
+        "default": "CodeMe Academy Limited",
+        "description": "Account name for manual course payments.",
+    },
+    PAYMENT_ACCOUNT_NUMBER: {
+        "default": "0123456789",
+        "description": "Account number for manual course payments.",
+    },
+    PAYMENT_INSTRUCTIONS: {
+        "default": "After transferring the funds, upload your receipt here:",
+        "description": "Instructions for manual course payments.",
     },
 }
 
