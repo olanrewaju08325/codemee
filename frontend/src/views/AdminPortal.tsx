@@ -20,18 +20,28 @@ import { AdminPlatformSettings } from '../components/admin/AdminPlatformSettings
 import { AdminUsagePanel } from '../components/admin/AdminUsagePanel';
 import apiClient from '../apiClient';
 
-const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
-  <div className={`p-6 rounded-xl border border-[var(--border)] bg-[var(--surface-dark)]`}>
-    <div className="flex justify-between items-start mb-4">
-      <div className={`p-3 rounded-lg bg-${color}-500/10 text-${color}-400`}>
-        <Icon size={24} />
+const StatCard = ({ title, value, change, icon: Icon, color }: any) => {
+  const colorMap: any = {
+    blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    green: 'bg-green-500/10 text-green-400 border-green-500/20',
+    purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  };
+  
+  return (
+    <div className="relative p-6 rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface-dark)] to-[var(--bg-main)] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+      <div className="relative z-10 flex justify-between items-start mb-4">
+        <div className={`p-3 rounded-xl border ${colorMap[color] || colorMap.blue}`}>
+          <Icon size={22} />
+        </div>
+        <span className="text-xs font-semibold px-2 py-1 bg-[var(--surface)] border border-[var(--border)] rounded-full text-[var(--muted)]">{change}</span>
       </div>
-      <span className="text-sm text-[var(--muted)]">{change}</span>
+      <h3 className="relative z-10 text-[var(--muted)] text-sm font-medium mb-1">{title}</h3>
+      <div className="relative z-10 text-3xl font-black text-[var(--text-primary)]">{value}</div>
+      <div className={`absolute -bottom-6 -right-6 w-24 h-24 rounded-full blur-3xl opacity-20 ${color === 'blue' ? 'bg-blue-500' : color === 'green' ? 'bg-green-500' : color === 'purple' ? 'bg-purple-500' : 'bg-emerald-500'}`}></div>
     </div>
-    <h3 className="text-[var(--muted)] text-sm mb-1">{title}</h3>
-    <div className="text-3xl font-bold">{value}</div>
-  </div>
-);
+  );
+};
 
 interface AdminPortalProps {
   session: any;
@@ -162,15 +172,57 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onSignOut }) => {
             {activeTab === 'versions' && <ContentVersionHistory />}
             
             {activeTab === 'home' && (
-              <div>
-                <Grid columns={{ sm: 1, md: 2, lg: 4 }} gap="lg" className="mb-8">
-                  <StatCard title="Total Students" value={metrics?.total_students ?? '-'} change="Active Platform Users" icon={Users} color="blue" />
-                  <StatCard title="Active Courses" value={metrics?.courses ?? '-'} change="Published Courses" icon={BookOpen} color="green" />
-                  <StatCard title="Course Payments" value={metrics?.pending_course_payments ?? '-'} change="Awaiting Verification" icon={CreditCard} color="purple" />
-                  <StatCard title="Open Support" value={metrics?.open_support_tickets ?? '-'} change="Needs Response" icon={Users} color="blue" />
-                  <StatCard title="System Health" value={metrics?.database_health ?? '-'} change="Database Status" icon={Activity} color="emerald" />
-                </Grid>
-                {/* Additional dashboard widgets can go here */}
+              <div className="space-y-8 animate-fade-in">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 sm:p-10 text-white shadow-2xl">
+                  <div className="relative z-10">
+                    <h2 className="text-3xl sm:text-4xl font-black mb-3 tracking-tight">Welcome to the Command Center</h2>
+                    <p className="opacity-90 max-w-2xl text-lg leading-relaxed">
+                      Here is what is happening in the academy today. You have <strong className="text-white">{metrics?.open_support_tickets || 0} open support tickets</strong> and <strong className="text-white">{metrics?.pending_course_payments || 0} pending payments</strong> requiring your attention.
+                    </p>
+                  </div>
+                  
+                  {/* Decorative Elements */}
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                  <div className="absolute bottom-0 right-1/4 w-40 h-40 bg-purple-400/20 rounded-full blur-2xl translate-y-1/2"></div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold mb-5 flex items-center gap-2"><Activity size={20} className="text-blue-500"/> Academy Overview</h3>
+                  <Grid columns={{ sm: 1, md: 2, lg: 3 }} gap="lg">
+                    <StatCard title="Total Students" value={metrics?.total_students ?? '-'} change="Active Platform Users" icon={Users} color="blue" />
+                    <StatCard title="Active Courses" value={metrics?.courses ?? '-'} change="Published Courses" icon={BookOpen} color="green" />
+                    <StatCard title="Course Payments" value={metrics?.pending_course_payments ?? '-'} change="Awaiting Verification" icon={CreditCard} color="purple" />
+                    <StatCard title="Open Support" value={metrics?.open_support_tickets ?? '-'} change="Needs Response" icon={Users} color="blue" />
+                    <StatCard title="System Health" value={metrics?.database_health ?? '-'} change="Database Status" icon={Activity} color="emerald" />
+                  </Grid>
+                </div>
+
+                {/* Activity Feed Placeholder */}
+                <div>
+                  <h3 className="text-xl font-bold mb-5 flex items-center gap-2">Recent Activity</h3>
+                  <div className="bg-[var(--surface-dark)] border border-[var(--border)] rounded-2xl p-6">
+                    <div className="space-y-6">
+                      {[
+                        { time: '10 mins ago', user: 'Sarah Johnson', action: 'enrolled in', target: 'Advanced Python Masterclass', color: 'blue' },
+                        { time: '1 hour ago', user: 'Michael Chen', action: 'completed', target: 'React Fundamentals Quiz 1', color: 'green' },
+                        { time: '2 hours ago', user: 'Admin', action: 'published', target: 'New UI/UX Course', color: 'purple' },
+                        { time: '5 hours ago', user: 'Emily Davis', action: 'submitted', target: 'Capstone Project', color: 'yellow' }
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex gap-4">
+                          <div className={`mt-1 w-2.5 h-2.5 rounded-full bg-${item.color}-500 shrink-0`}></div>
+                          <div>
+                            <p className="text-sm">
+                              <span className="font-semibold text-[var(--text-primary)]">{item.user}</span>{' '}
+                              <span className="text-[var(--muted)]">{item.action}</span>{' '}
+                              <span className="font-semibold text-[var(--text-primary)]">{item.target}</span>
+                            </p>
+                            <span className="text-xs text-[var(--muted)]">{item.time}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

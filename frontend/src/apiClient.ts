@@ -341,6 +341,11 @@ export const adminCourseAPI = {
     if (!response.ok) throw new Error(await response.text() || 'Unable to save course');
     return response.json();
   },
+  delete: async (id: string) => {
+    const response = await authenticatedFetch(`/api/courses/admin/courses/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Unable to delete course');
+    return response.json();
+  },
 };
 
 // Quizzes API

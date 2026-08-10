@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { adminCourseAPI } from '../../apiClient';
 import { useToast } from '../../contexts/ToastContext';
-import { BookOpen, Edit, Plus, Eye, EyeOff, UploadCloud, X, Loader2 } from 'lucide-react';
+import { BookOpen, Edit, Plus, Eye, EyeOff, UploadCloud, X, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 
 
@@ -66,6 +66,17 @@ export const AdminCourseManagement = () => {
       showToast('Course settings saved.', 'success');
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Could not save course settings.', 'error');
+    }
+  };
+
+  const handleDelete = async (courseId: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${title}"? This cannot be undone.`)) return;
+    try {
+      await adminCourseAPI.delete(courseId);
+      showToast('Course deleted successfully.', 'success');
+      fetchCourses();
+    } catch (e: any) {
+      showToast(e.message || 'Failed to delete course.', 'error');
     }
   };
 
@@ -134,69 +145,72 @@ export const AdminCourseManagement = () => {
         </button>
       </div>
 
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-[var(--surface-dark)] border-b border-[var(--border)]">
-            <tr>
-              <th className="p-4 font-semibold text-[var(--muted)]">Course</th>
-              <th className="p-4 font-semibold text-[var(--muted)]">Level</th>
-              <th className="p-4 font-semibold text-[var(--muted)]">Price / duration</th>
-              <th className="p-4 font-semibold text-[var(--muted)]">Status</th>
-              <th className="p-4 font-semibold text-[var(--muted)] text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {courses.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-[var(--muted)]">No courses found.</td>
-              </tr>
-            ) : (
-              courses.map((course) => (
-                <tr key={course.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-dark)] transition-colors">
-                  <td className="p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center">
-                      <BookOpen size={20} />
-                    </div>
-                    <div>
-                      <div className="font-medium text-[var(--text-primary)]">{course.title}</div>
-                      <div className="text-sm text-[var(--muted)]">{course.id}</div>
-                    </div>
-                  </td>
-                  <td className="p-4 text-[var(--text-primary)] capitalize">{course.level || 'All Levels'}</td>
-                  <td className="p-4 font-mono text-[var(--text-primary)]">
-                    {course.price ? `${course.currency || '₦'} ${course.price.toLocaleString()}` : 'Free'}
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 text-xs rounded-full border ${course.status === 'published' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'}`}>
-                      {course.status || 'draft'}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {courses.length === 0 ? (
+          <div className="col-span-full p-12 text-center bg-[var(--surface-dark)] border border-[var(--border)] rounded-2xl text-[var(--muted)]">
+            No courses found. Click "New Course" to get started.
+          </div>
+        ) : (
+          courses.map((course) => (
+            <div key={course.id} className="group relative bg-[var(--surface-dark)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+              {/* Course Thumbnail Placeholder */}
+              <div className="h-40 bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center relative">
+                <BookOpen size={48} className="text-[var(--primary)] opacity-50" />
+                <div className="absolute top-4 right-4">
+                  <span className={`px-3 py-1 text-xs font-semibold rounded-full border shadow-sm backdrop-blur-md ${course.status === 'published' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}`}>
+                    {course.status === 'published' ? 'PUBLISHED' : 'DRAFT'}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Course Details */}
+              <div className="p-5">
+                <div className="text-xs text-[var(--primary)] font-bold mb-1 uppercase tracking-wider">{course.id}</div>
+                <h3 className="text-xl font-bold mb-2 line-clamp-1" title={course.title}>{course.title}</h3>
+                
+                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-[var(--muted)] mb-5">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider">Level</span>
+                    <span className="font-semibold text-[var(--text-primary)] capitalize">{course.level || 'All'}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider">Price</span>
+                    <span className="font-semibold text-blue-400">
+                      {course.price ? `${course.currency || '₦'}${course.price.toLocaleString()}` : 'Free'}
                     </span>
-                  </td>
-                  <td className="p-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => { setUploadTarget(course); setShowUpload(true); }}
-                        className="p-2 rounded hover:bg-[var(--surface)] text-[var(--muted)] hover:text-green-500 transition-colors"
-                        title="Upload Video to Course"
-                      >
-                        <UploadCloud size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleTogglePublish(course.id, course.status)}
-                        className="p-2 rounded hover:bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text-primary)] transition-colors"
-                        title={course.status === 'published' ? 'Unpublish' : 'Publish'}
-                      >
-                        {course.status === 'published' ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                      <button onClick={() => handleEdit(course)} className="p-2 rounded hover:bg-[var(--surface)] text-[var(--muted)] hover:text-blue-500 transition-colors" title="Edit price, duration, level and delivery mode">
-                        <Edit size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider">Mode</span>
+                    <span className="font-semibold text-[var(--text-primary)] capitalize">{course.delivery_mode || 'Hybrid'}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider">Duration</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{course.duration_weeks ? `${course.duration_weeks} weeks` : 'N/A'}</span>
+                  </div>
+                </div>
+                
+                {/* Actions */}
+                <div className="flex gap-2 justify-between pt-4 border-t border-[var(--border)]">
+                  <div className="flex gap-1">
+                    <button onClick={() => handleEdit(course)} className="p-2 rounded-lg bg-[var(--surface)] hover:bg-blue-500/20 text-[var(--text-primary)] hover:text-blue-400 transition-colors tooltip" title="Edit course details">
+                      <Edit size={16} />
+                    </button>
+                    <button onClick={() => { setUploadTarget(course); setShowUpload(true); }} className="p-2 rounded-lg bg-[var(--surface)] hover:bg-green-500/20 text-[var(--text-primary)] hover:text-green-400 transition-colors tooltip" title="Upload Video">
+                      <UploadCloud size={16} />
+                    </button>
+                    <button onClick={() => handleTogglePublish(course.id, course.status)} className="p-2 rounded-lg bg-[var(--surface)] hover:bg-purple-500/20 text-[var(--text-primary)] hover:text-purple-400 transition-colors tooltip" title={course.status === 'published' ? 'Unpublish' : 'Publish'}>
+                      {course.status === 'published' ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  
+                  <button onClick={() => handleDelete(course.id, course.title)} className="p-2 rounded-lg bg-[var(--surface)] hover:bg-red-500/20 text-[var(--muted)] hover:text-red-400 transition-colors tooltip" title="Delete Course">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {showCreate && (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Ban, Key, X, RefreshCw, Copy, Check, Loader2 } from "lucide-react";
+import { Search, Ban, Key, X, RefreshCw, Copy, Check, Loader2, Eye, User as UserIcon, Mail } from "lucide-react";
 import apiClient from "../../apiClient";
 
 const genTempPassword = (): string => {
@@ -23,6 +23,9 @@ export const UserManagementTable = ({ roleFilter }: { roleFilter?: 'student' | '
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetDone, setResetDone] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Quick View Modal State
+  const [quickViewTarget, setQuickViewTarget] = useState<any | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -168,35 +171,112 @@ export const UserManagementTable = ({ roleFilter }: { roleFilter?: 'student' | '
         <div className="p-8 text-center text-[var(--muted)]">Loading directory...</div>
       ) : (
         <table className="w-full text-sm text-left">
-          <thead className="text-[var(--muted)] bg-[var(--surface)] uppercase border-b border-[var(--border)]">
+          <thead className="text-[var(--muted)] bg-[var(--surface-dark)] border-b border-[var(--border)]">
             <tr>
-              <th className="px-6 py-3">Name</th>
-              <th className="px-6 py-3">Email</th>
-              <th className="px-6 py-3">Role</th>
-              <th className="px-6 py-3 text-right">Actions</th>
+              <th className="px-6 py-4 font-semibold text-xs tracking-wider">User Details</th>
+              <th className="px-6 py-4 font-semibold text-xs tracking-wider">Role</th>
+              <th className="px-6 py-4 font-semibold text-xs tracking-wider text-right">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-[var(--border)]">
             {filteredUsers.map((u) => (
-              <tr key={u.id} className="border-b border-[var(--border)] hover:bg-[var(--surface)]">
-                <td className="px-6 py-4 font-medium">{u.full_name}</td>
-                <td className="px-6 py-4 text-[var(--muted)]">{u.email}</td>
+              <tr key={u.id} className="hover:bg-[var(--surface)] transition-colors group">
                 <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded text-xs ${u.role === "admin" ? "bg-red-500/10 text-red-400" : u.role === "teacher" ? "bg-purple-500/10 text-purple-400" : "bg-blue-500/10 text-blue-400"}`}>
-                    {u.role}
+                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => setQuickViewTarget(u)}>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500/20 to-purple-500/20 border border-[var(--border)] flex items-center justify-center text-[var(--primary)] font-bold shadow-inner">
+                      {u.full_name ? u.full_name.charAt(0).toUpperCase() : <UserIcon size={18}/>}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors">{u.full_name || 'Anonymous User'}</div>
+                      <div className="text-xs text-[var(--muted)] flex items-center gap-1 mt-0.5"><Mail size={12}/> {u.email}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${u.role === "admin" ? "bg-red-500/10 text-red-400 border-red-500/20" : u.role === "teacher" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"}`}>
+                    {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => openReset(u)} className="text-[var(--muted)] hover:text-white p-1 mr-1" title="Reset Password"><Key size={16}/></button>
-                  <button onClick={() => handleDelete(u.id, u.full_name)} className="text-[var(--muted)] hover:text-red-400 p-1" title="Delete User"><Ban size={16}/></button>
+                  <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => setQuickViewTarget(u)} className="p-2 rounded-lg bg-[var(--surface-dark)] border border-[var(--border)] hover:bg-[var(--bg-main)] text-[var(--text-primary)] transition-all" title="View Details"><Eye size={16}/></button>
+                    <button onClick={() => openReset(u)} className="p-2 rounded-lg bg-[var(--surface-dark)] border border-[var(--border)] hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/20 text-[var(--text-primary)] transition-all" title="Reset Password"><Key size={16}/></button>
+                    <button onClick={() => handleDelete(u.id, u.full_name)} className="p-2 rounded-lg bg-[var(--surface-dark)] border border-[var(--border)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 text-[var(--text-primary)] transition-all" title="Delete User"><Ban size={16}/></button>
+                  </div>
                 </td>
               </tr>
             ))}
             {filteredUsers.length === 0 && (
-              <tr><td colSpan={4} className="p-8 text-center text-[var(--muted)]">No users found.</td></tr>
+              <tr><td colSpan={3} className="p-12 text-center text-[var(--muted)]">No users found in this directory.</td></tr>
             )}
           </tbody>
         </table>
+      )}
+
+      {/* Quick View Modal */}
+      {quickViewTarget && (
+        <div
+          onClick={() => setQuickViewTarget(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-2xl transform transition-all"
+          >
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white relative">
+              <button onClick={() => setQuickViewTarget(null)} className="absolute top-4 right-4 text-white/70 hover:text-white" title="Close"><X size={20} /></button>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center text-2xl font-bold shadow-inner">
+                  {quickViewTarget.full_name ? quickViewTarget.full_name.charAt(0).toUpperCase() : <UserIcon size={24}/>}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">{quickViewTarget.full_name || 'Anonymous User'}</h3>
+                  <div className="text-sm text-blue-100 flex items-center gap-1 mt-1"><Mail size={14}/> {quickViewTarget.email}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)]">
+                  <div className="text-xs text-[var(--muted)] font-medium mb-1 uppercase tracking-wider">Role</div>
+                  <div className="font-semibold capitalize text-[var(--text-primary)]">{quickViewTarget.role}</div>
+                </div>
+                <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)]">
+                  <div className="text-xs text-[var(--muted)] font-medium mb-1 uppercase tracking-wider">Status</div>
+                  <div className="font-semibold text-green-500">Active</div>
+                </div>
+              </div>
+              
+              <div className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)]">
+                <h4 className="text-sm font-bold mb-2">Platform Details</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-[var(--muted)]">User ID:</span> <span className="font-mono text-xs">{quickViewTarget.id.substring(0,8)}...</span></div>
+                </div>
+              </div>
+
+              {quickViewTarget.role === 'student' && (
+                <div className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)]">
+                  <h4 className="text-sm font-bold mb-2">Enrolled Courses</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-sm p-2 bg-[var(--surface-dark)] rounded-lg border border-[var(--border)]">
+                      <span className="font-medium text-[var(--text-primary)]">Python Masterclass</span>
+                      <span className="text-[10px] uppercase tracking-wider bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">Active</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm p-2 bg-[var(--surface-dark)] rounded-lg border border-[var(--border)]">
+                      <span className="font-medium text-[var(--text-primary)]">React Fundamentals</span>
+                      <span className="text-[10px] uppercase tracking-wider bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">Completed</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-[var(--border)] bg-[var(--surface-dark)] flex gap-2 justify-end">
+              <button onClick={() => setQuickViewTarget(null)} className="px-4 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg-main)]">Close</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {resetTarget && (

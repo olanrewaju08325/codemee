@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.permissions import require_teacher_or_admin
@@ -9,6 +11,7 @@ from app.services.course_service import (
     get_course_by_id,
     create_course,
     update_course,
+    delete_course,
     get_modules_by_course,
     get_module_by_id,
     get_lessons_by_module,
@@ -281,11 +284,21 @@ async def update_course_endpoint(
     await require_course_teacher(db, course_id, user_data)
     course = await update_course(db, course_id, course_data)
     if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Course not found"
-        )
+        raise HTTPException(status_code=404, detail="Course not found")
     return course
+
+@router.delete("/admin/courses/{course_id}")
+async def delete_course_endpoint(
+    course_id: str,
+    user_data: Dict[str, Any] = Depends(require_teacher_or_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Delete a course.
+    """
+    await delete_course(db, course_id)
+    return {"status": "success", "message": "Course deleted"}
+
 
 # Module management endpoints
 
